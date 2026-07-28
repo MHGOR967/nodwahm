@@ -1,3 +1,16 @@
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// صفحة ويب وهمية بسيطة عشان البورت يظل مفتوح ويتعامل مع رندر
+app.get('/', (req, res) => {
+    res.send('Bot is running successfully! 🚀');
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+});
+
 const TelegramBot = require('node-telegram-bot-api');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
