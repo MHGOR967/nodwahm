@@ -206,11 +206,11 @@ bot.on('callback_query', (callbackQuery) => {
             const vipStatus = stats.vip || userId === ADMIN_ID ? "💎 عضو مميز (VIP)" : "🛡 عضو عادي";
             bot.sendMessage(chatId, 
                 `🥷 <b>معلومات حسابك الشخصي:</b>\n\n` +
-                `🆔 المعرّف: <code>${userId}</code>\n` +
+                `🆔 المعرّف: <code>{userId}</code>\n` +
                 `⚡ الرتبة: ${vipStatus}\n` +
-                `👥 عدد الدعوات: <b>${stats.referrals}</b> شخص\n` +
-                `⭐ إجمالي التبرعات: <b>${stats.stars}</b> نجمة\n` +
-                `🌐 المنصة: <b>fokhm.com</b>`,
+                `👥 عدد الدعوات: <b>{stats.referrals}</b> شخص\n` +
+                `⭐ إجمالي التبرعات: <b>{stats.stars}</b> نجمة\n` +
+                `🌐 المنصة: <b>fokhm.com</b>`.replace('{userId}', userId).replace('{stats.referrals}', stats.referrals).replace('{stats.stars}', stats.stars),
                 { parse_mode: 'HTML' }
             );
         });
@@ -219,7 +219,7 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
             const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
-            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>${inviteLink}</code>`, { parse_mode: 'HTML' });
+            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>{inviteLink}</code>`, { parse_mode: 'HTML' });
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -233,9 +233,9 @@ bot.on('callback_query', (callbackQuery) => {
         getTotalUsers((count) => {
             bot.editMessageText(
                 `📊 <b>إحصائيات بوت fokhm.com:</b>\n\n` +
-                `👥 إجمالي المشتركين: <b>${count}</b> عضو\n` +
+                `👥 إجمالي المشتركين: <b>{count}</b> عضو\n` +
                 `⚡ حالة الخادم: يعمل بكفاءة عالية (Node.js)\n` +
-                `👑 المشرف العام: <code>${ADMIN_ID}</code>`,
+                `👑 المشرف العام: <code>{ADMIN_ID}</code>`.replace('{count}', count),
                 { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminKeyboard() }
             );
         });
@@ -243,7 +243,7 @@ bot.on('callback_query', (callbackQuery) => {
     }
     else if (data === 'admin_edit_welcome' && userId === ADMIN_ID) {
         adminState[ADMIN_ID] = 'awaiting_welcome';
-        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* قم بإرسال الإيموجي المميز وسأقوم بحفظه تلقائياً بصيغة HTML.", {
+        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن في رسالة واحدة.\n\n*ملاحظة:* قم بإرسال الإيموجي المميز داخل النص وسأقوم بحفظه تلقائياً بصيغة HTML.", {
             chat_id: chatId,
             message_id: messageId
         });
@@ -302,7 +302,7 @@ bot.on('callback_query', (callbackQuery) => {
         } else if (action === 'confirm') {
             const amount = parseInt(current || "1");
             delete donationSessions[userId];
-            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, {
+            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>{amount}</b> نجمة (Telegram Stars).`.replace('{amount}', amount), {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'HTML'
@@ -325,7 +325,7 @@ bot.on('callback_query', (callbackQuery) => {
         bot.editMessageText(
             "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\n" +
             "اختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:\n\n" +
-            `📌 <b>الكمية المحددة حالياً:</b> <code>${current}</code> نجوم`,
+            `📌 <b>الكمية المحددة حالياً:</b> <code>{current}</code> نجوم`.replace('{current}', current),
             { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getNumberPad(current) }
         ).catch(() => {});
         bot.answerCallbackQuery(callbackQuery.id);
@@ -410,7 +410,7 @@ bot.on('message', (msg) => {
             });
             
             setTimeout(() => {
-                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>${success}</b>\n❌ فشل: <b>${failed}</b>`, {
+                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>{success}</b>\n❌ فشل: <b>{failed}</b>`.replace('{success}', success).replace('{failed}', failed), {
                     parse_mode: 'HTML',
                     reply_markup: getAdminKeyboard()
                 });
