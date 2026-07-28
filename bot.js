@@ -10,7 +10,7 @@ const WEBAPP_URL = "https://fokhm.com";
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// ==================== إعداد قاعدة البيانات SQLite ====================
+// ==================== قاعدة البيانات ====================
 const db = new sqlite3.Database(DB_FILE, (err) => {
     if (err) console.error("Database error:", err.message);
     else console.log("Connected to SQLite database.");
@@ -53,7 +53,7 @@ function getTotalUsers(callback) {
     });
 }
 
-// ==================== إدارة الإعدادات ====================
+// ==================== الإعدادات الافتراضية ====================
 const defaultConfig = {
     welcome_message: (
         "🏴‍☠️ <b>أهلاً بك يا {name} في نظام g5wbot الماسي</b>\n" +
@@ -91,7 +91,7 @@ function saveConfig(config) {
 
 let config = loadConfig();
 
-// ==================== لوحات المفاتيح (Keyboards) مع دعم الأيقونات المميزة ====================
+// ==================== لوحات المفاتيح المرتبة بالكامل ====================
 function getMainKeyboard() {
     const b = config.buttons;
     return {
@@ -100,7 +100,7 @@ function getMainKeyboard() {
                 { 
                     text: b.inject || "حقن وتلغيم تطبيق", 
                     web_app: { url: WEBAPP_URL },
-                    icon_custom_emoji_id: "5368324170671202286" // إيموجي مميز مدمج للزر
+                    icon_custom_emoji_id: "5368324170671202286" // الأيقونة المميزة للحقن
                 }
             ],
             [
@@ -190,7 +190,7 @@ bot.onText(/\/start/, (msg) => {
     });
 });
 
-// ==================== لوحة تحكم الآدمن /admin ====================
+// ==================== لوحة الآدمن /admin ====================
 bot.onText(/\/admin/, (msg) => {
     if (msg.from.id !== ADMIN_ID) {
         return bot.sendMessage(msg.chat.id, "❌ هذا الأمر مخصص للآدمن الرئيسي فقط يا فخم.");
@@ -201,7 +201,7 @@ bot.onText(/\/admin/, (msg) => {
     });
 });
 
-// ==================== معالجة الأزرار والـ Callback Queries ====================
+// ==================== إدارة الاستعلامات والأزرار ====================
 bot.on('callback_query', (callbackQuery) => {
     const msg = callbackQuery.message;
     const data = callbackQuery.data;
@@ -214,11 +214,11 @@ bot.on('callback_query', (callbackQuery) => {
             const vipStatus = stats.vip || userId === ADMIN_ID ? "💎 عضو مميز (VIP)" : "🛡 عضو عادي";
             bot.sendMessage(chatId, 
                 `🥷 <b>معلومات حسابك الشخصي:</b>\n\n` +
-                `🆔 المعرّف: <code>{userId}</code>\n` +
+                `🆔 المعرّف: <code>${userId}</code>\n` +
                 `⚡ الرتبة: ${vipStatus}\n` +
-                `👥 عدد الدعوات: <b>{stats.referrals}</b> شخص\n` +
-                `⭐ إجمالي التبرعات: <b>{stats.stars}</b> نجمة\n` +
-                `🌐 المنصة: <b>fokhm.com</b>`.replace('{userId}', userId).replace('{stats.referrals}', stats.referrals).replace('{stats.stars}', stats.stars),
+                `👥 عدد الدعوات: <b>${stats.referrals}</b> شخص\n` +
+                `⭐ إجمالي التبرعات: <b>${stats.stars}</b> نجمة\n` +
+                `🌐 المنصة: <b>fokhm.com</b>`,
                 { parse_mode: 'HTML' }
             );
         });
@@ -227,7 +227,7 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
             const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
-            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>{inviteLink}</code>`, { parse_mode: 'HTML' });
+            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>${inviteLink}</code>`, { parse_mode: 'HTML' });
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -241,9 +241,9 @@ bot.on('callback_query', (callbackQuery) => {
         getTotalUsers((count) => {
             bot.editMessageText(
                 `📊 <b>إحصائيات بوت fokhm.com:</b>\n\n` +
-                `👥 إجمالي المشتركين: <b>{count}</b> عضو\n` +
+                `👥 إجمالي المشتركين: <b>${count}</b> عضو\n` +
                 `⚡ حالة الخادم: يعمل بكفاءة عالية (Node.js)\n` +
-                `👑 المشرف العام: <code>{ADMIN_ID}</code>`.replace('{count}', count),
+                `👑 المشرف العام: <code>${ADMIN_ID}</code>`,
                 { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminKeyboard() }
             );
         });
@@ -310,7 +310,7 @@ bot.on('callback_query', (callbackQuery) => {
         } else if (action === 'confirm') {
             const amount = parseInt(current || "1");
             delete donationSessions[userId];
-            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>{amount}</b> نجمة (Telegram Stars).`.replace('{amount}', amount), {
+            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'HTML'
@@ -333,14 +333,14 @@ bot.on('callback_query', (callbackQuery) => {
         bot.editMessageText(
             "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\n" +
             "اختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:\n\n" +
-            `📌 <b>الكمية المحددة حالياً:</b> <code>{current}</code> نجوم`.replace('{current}', current),
+            `📌 <b>الكمية المحددة حالياً:</b> <code>${current}</code> نجوم`,
             { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getNumberPad(current) }
         ).catch(() => {});
         bot.answerCallbackQuery(callbackQuery.id);
     }
 });
 
-// ==================== استقبال الرسائل والتعرف التلقائي على الإيموجي المميزة ====================
+// ==================== معالجة الرسائل والتعرف على الإيموجي ====================
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -368,7 +368,7 @@ bot.on('message', (msg) => {
         config.welcome_message = newText;
         saveConfig();
         delete adminState[ADMIN_ID];
-        bot.sendMessage(chatId, '✅ تم تحديث رسالة الترحيب والتعرف على الإيموجي المميزة تلقائياً بنجاح يا فخم!\n\nجرب إرسال /start لرؤيتها.');
+        bot.sendMessage(chatId, '✅ تم تحديث رسالة الترحيب بنجاح يا فخم!\n\nجرب إرسال /start لرؤيتها.');
     }
     else if (adminState[ADMIN_ID] === 'awaiting_buttons') {
         const parts = (msg.text || '').split(',').map(p => p.trim());
@@ -418,7 +418,7 @@ bot.on('message', (msg) => {
             });
             
             setTimeout(() => {
-                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>{success}</b>\n❌ فشل: <b>{failed}</b>`.replace('{success}', success).replace('{failed}', failed), {
+                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>${success}</b>\n❌ فشل: <b>${failed}</b>`, {
                     parse_mode: 'HTML',
                     reply_markup: getAdminKeyboard()
                 });
@@ -438,7 +438,7 @@ bot.on('successful_payment', (msg) => {
     const userId = msg.from.id;
     let amount = 5;
     
-    IdPayload: if (payload.startsWith("donation_")) {
+    if (payload.startsWith("donation_")) {
         try { amount = parseInt(payload.split("_")[2]); } catch (e) {}
     }
     
@@ -449,5 +449,5 @@ bot.on('successful_payment', (msg) => {
     });
 });
 
-console.log('🤖 بوت fokhm.com يعمل الآن بكفاءة مطلقة مع دعم الأيقونات المميزة للأزرار...');
+console.log('🤖 بوت fokhm.com يعمل الآن بنظام مرتب وبدون أي تكرار...');
 
