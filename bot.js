@@ -65,12 +65,12 @@ const defaultConfig = {
         "اختر إحدى الخدمات أدناه للبدء فوراً:"
     ),
     buttons: {
-        inject: "⚡ حقن وتلغيم تطبيق",
-        account: "🥷 معلومات حسابي",
-        invite: "🔗 دعوة صديق (ربح)",
-        vip: "💎 قسم VIP",
-        help: "❓ مساعدة",
-        donate: "⭐ تبرع للبوت"
+        inject: "حقن وتلغيم تطبيق",
+        account: "معلومات حسابي",
+        invite: "دعوة صديق (ربح)",
+        vip: "قسم VIP",
+        help: "مساعدة",
+        donate: "تبرع للبوت"
     }
 };
 
@@ -91,21 +91,29 @@ function saveConfig(config) {
 
 let config = loadConfig();
 
-// ==================== لوحات المفاتيح (Keyboards) ====================
+// ==================== لوحات المفاتيح (Keyboards) مع دعم الأيقونات المميزة ====================
 function getMainKeyboard() {
     const b = config.buttons;
     return {
         inline_keyboard: [
-            [{ text: b.inject || "⚡ حقن وتلغيم تطبيق", web_app: { url: WEBAPP_URL } }],
             [
-                { text: b.account || "🥷 معلومات حسابي", callback_data: "my_account" },
-                { text: b.invite || "🔗 دعوة صديق (ربح)", callback_data: "invite_friends" }
+                { 
+                    text: b.inject || "حقن وتلغيم تطبيق", 
+                    web_app: { url: WEBAPP_URL },
+                    icon_custom_emoji_id: "5368324170671202286" // إيموجي مميز مدمج للزر
+                }
             ],
             [
-                { text: b.vip || "💎 قسم VIP", callback_data: "vip_section" },
-                { text: b.help || "❓ مساعدة", callback_data: "help_section" }
+                { text: b.account || "معلومات حسابي", callback_data: "my_account", icon_custom_emoji_id: "5368324170671202287" },
+                { text: b.invite || "دعوة صديق (ربح)", callback_data: "invite_friends", icon_custom_emoji_id: "5368324170671202288" }
             ],
-            [{ text: b.donate || "⭐ تبرع للبوت", callback_data: "start_donation" }]
+            [
+                { text: b.vip || "قسم VIP", callback_data: "vip_section", icon_custom_emoji_id: "5368324170671202289" },
+                { text: b.help || "مساعدة", callback_data: "help_section", icon_custom_emoji_id: "5368324170671202290" }
+            ],
+            [
+                { text: b.donate || "تبرع للبوت", callback_data: "start_donation", icon_custom_emoji_id: "5368324170671202291" }
+            ]
         ]
     };
 }
@@ -243,7 +251,7 @@ bot.on('callback_query', (callbackQuery) => {
     }
     else if (data === 'admin_edit_welcome' && userId === ADMIN_ID) {
         adminState[ADMIN_ID] = 'awaiting_welcome';
-        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن في رسالة واحدة.\n\n*ملاحظة:* قم بإرسال الإيموجي المميز داخل النص وسأقوم بحفظه تلقائياً بصيغة HTML.", {
+        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* قم بإرسال الإيموجي المميز داخل النص وسأقوم بحفظه تلقائياً بصيغة HTML.", {
             chat_id: chatId,
             message_id: messageId
         });
@@ -430,7 +438,7 @@ bot.on('successful_payment', (msg) => {
     const userId = msg.from.id;
     let amount = 5;
     
-    if (payload.startsWith("donation_")) {
+    IdPayload: if (payload.startsWith("donation_")) {
         try { amount = parseInt(payload.split("_")[2]); } catch (e) {}
     }
     
@@ -441,5 +449,5 @@ bot.on('successful_payment', (msg) => {
     });
 });
 
-console.log('🤖 بوت fokhm.com يعمل الآن بكفاءة مطلقة مع دعم الإيموجي المميزة...');
+console.log('🤖 بوت fokhm.com يعمل الآن بكفاءة مطلقة مع دعم الأيقونات المميزة للأزرار...');
 
