@@ -1,13 +1,13 @@
 {
   "name": "fokhm-telegram-bot",
-  "version": "2.0.0",
-  "description": "Telegram Bot for fokhm.com using Telegraf",
+  "version": "3.0.0",
+  "description": "Telegram Bot for fokhm.com using node-telegram-bot-api",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "telegraf": "^4.16.3",
+    "node-telegram-bot-api": "^0.66.0",
     "sqlite3": "^5.1.7"
   }
 }
