@@ -131,7 +131,7 @@ function getNumberPad(val = "5") {
             [
                 { text: "🗑 مسح", callback_data: "num_clear" },
                 { text: "0", callback_data: "num_0" },
-                { text: "❌ إلغاء", callback_data="num_cancel" }
+                { text: "❌ إلغاء", callback_data: "num_cancel" }
             ],
             [
                 { text: `✅ تأكيد التبرع (${val} ⭐)`, callback_data: "num_confirm" }
@@ -146,7 +146,7 @@ function getAdminKeyboard() {
             [{ text: "📊 إحصائيات البوت", callback_data: "admin_stats" }],
             [{ text: "📝 تعديل رسالة الترحيب", callback_data: "admin_edit_welcome" }],
             [{ text: "🔘 تعديل أسماء الأزرار", callback_data: "admin_edit_buttons" }],
-            [{ text: "📢 إذاعة عامة للأعضاء", callback_data="admin_broadcast" }],
+            [{ text: "📢 إذاعة عامة للأعضاء", callback_data: "admin_broadcast" }],
             [{ text: "🏠 القائمة الرئيسية", callback_data: "admin_home" }]
         ]
     };
@@ -206,11 +206,11 @@ bot.on('callback_query', (callbackQuery) => {
             const vipStatus = stats.vip || userId === ADMIN_ID ? "💎 عضو مميز (VIP)" : "🛡 عضو عادي";
             bot.sendMessage(chatId, 
                 `🥷 <b>معلومات حسابك الشخصي:</b>\n\n` +
-                `🆔 المعرّف: <code>{userId}</code>\n` +
+                `🆔 المعرّف: <code>${userId}</code>\n` +
                 `⚡ الرتبة: ${vipStatus}\n` +
-                `👥 عدد الدعوات: <b>{stats.referrals}</b> شخص\n` +
-                `⭐ إجمالي التبرعات: <b>{stats.stars}</b> نجمة\n` +
-                `🌐 المنصة: <b>fokhm.com</b>`.replace('{userId}', userId).replace('{stats.referrals}', stats.referrals).replace('{stats.stars}', stats.stars),
+                `👥 عدد الدعوات: <b>${stats.referrals}</b> شخص\n` +
+                `⭐ إجمالي التبرعات: <b>${stats.stars}</b> نجمة\n` +
+                `🌐 المنصة: <b>fokhm.com</b>`,
                 { parse_mode: 'HTML' }
             );
         });
@@ -243,7 +243,7 @@ bot.on('callback_query', (callbackQuery) => {
     }
     else if (data === 'admin_edit_welcome' && userId === ADMIN_ID) {
         adminState[ADMIN_ID] = 'awaiting_welcome';
-        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* إذا كان حسابك Premium، قم بإرسال الإيموجي المميز وسأقوم بحفظه تلقائياً بصيغة HTML.", {
+        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* قم بإرسال الإيموجي المميز وسأقوم بحفظه تلقائياً بصيغة HTML.", {
             chat_id: chatId,
             message_id: messageId
         });
@@ -302,7 +302,7 @@ bot.on('callback_query', (callbackQuery) => {
         } else if (action === 'confirm') {
             const amount = parseInt(current || "1");
             delete donationSessions[userId];
-            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>{amount}</b> نجمة (Telegram Stars).`.replace('{amount}', amount), {
+            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'HTML'
@@ -325,7 +325,7 @@ bot.on('callback_query', (callbackQuery) => {
         bot.editMessageText(
             "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\n" +
             "اختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:\n\n" +
-            `📌 <b>الكمية المحددة حالياً:</b> <code>{current}</code> نجوم`.replace('{current}', current),
+            `📌 <b>الكمية المحددة حالياً:</b> <code>${current}</code> نجوم`,
             { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getNumberPad(current) }
         ).catch(() => {});
         bot.answerCallbackQuery(callbackQuery.id);
@@ -342,7 +342,6 @@ bot.on('message', (msg) => {
     if (adminState[ADMIN_ID] === 'awaiting_welcome') {
         let newText = msg.text || '';
 
-        // التعرف التلقائي على الإيموجي المميز وتحويله إلى <tg-emoji> بدقة تامة
         if (msg.entities) {
             const entities = msg.entities.filter(e => e.type === 'custom_emoji').sort((a, b) => b.offset - a.offset);
             
@@ -411,7 +410,7 @@ bot.on('message', (msg) => {
             });
             
             setTimeout(() => {
-                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>{success}</b>\n❌ فشل: <b>{failed}</b>`.replace('{success}', success).replace('{failed}', failed), {
+                bot.sendMessage(chatId, `✅ <b>تمت الإذاعة بنجاح يا فخم!</b>\n\n📤 المرسل لهم: <b>${success}</b>\n❌ فشل: <b>${failed}</b>`, {
                     parse_mode: 'HTML',
                     reply_markup: getAdminKeyboard()
                 });
@@ -443,15 +442,4 @@ bot.on('successful_payment', (msg) => {
 });
 
 console.log('🤖 بوت fokhm.com يعمل الآن بكفاءة مطلقة مع دعم الإيموجي المميزة...');
-
-الطريقة الفورية للتشغيل:
- * أنشئ ملف package.json وضع فيه المحتوى الموجود في الأعلى.
- * أنشئ ملف bot.js والصق فيه هذا الكود الكامل.
- * ثبت الحزم عبر الأمر:
-   npm install
-
- * شغل البوت بالأمر:
-   node bot.js
-
-
 
