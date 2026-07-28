@@ -94,6 +94,8 @@ const defaultConfig = {
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
         "اختر إحدى الخدمات أدناه للبدء فوراً:"
     ),
+    welcome_photo: null,
+    vip_photo: null,
     buttons: [
         { text: "حقن وتلغيم تطبيق", callback_data: "web_app", emoji_id: null },
         { text: "معلومات حسابي", callback_data: "my_account", emoji_id: null },
@@ -262,16 +264,20 @@ bot.onText(/\/start/, (msg) => {
     
     let welcomeText = config.welcome_message.replace(/{name}/g, user.first_name);
     
-    bot.sendMessage(chatId, welcomeText, {
+    const options = {
         parse_mode: 'HTML',
         reply_markup: getMainKeyboard()
-    }).catch((err) => {
-        // في حال فشل الإرسال بسبب إيموجي مميز غير مدعوم، نقوم بتنظيف النص
-        bot.sendMessage(chatId, welcomeText.replace(/<tg-emoji[^>]*>.*?<\/tg-emoji>/g, ''), {
-            parse_mode: 'HTML',
-            reply_markup: getMainKeyboard()
+    };
+
+    if (config.welcome_photo) {
+        bot.sendPhoto(chatId, config.welcome_photo, { caption: welcomeText, ...options }).catch(() => {
+            bot.sendMessage(chatId, welcomeText, options);
         });
-    });
+    } else {
+        bot.sendMessage(chatId, welcomeText, options).catch(() => {
+            bot.sendMessage(chatId, welcomeText.replace(/<tg-emoji[^>]*>.*?<\/tg-emoji>/g, ''), options);
+        });
+    }
 });
 
 // أمر /admin
@@ -366,20 +372,27 @@ bot.on('callback_query', (callbackQuery) => {
     
     // --- قسم VIP ---
     else if (data === 'vip_section') {
-        // حساب الوقت المتبقي (48 ساعة من الآن كعرض وهمي أو حقيقي)
-        // لعرض وقت متحرك، سنستخدم حيلة في التليجرام بتحديث الرسالة، أو نكتفي بعرض وقت الانتهاء الثابت
-        const endTime = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        const timeInfo = getVipOfferTimeRemaining();
+        const vipText = `${config.vip_info || defaultConfig.vip_info}\n\n⏳ <b>الوقت المتبقي للعرض:</b> <code>${timeInfo.text}</code>`;
         
-        bot.editMessageText(
-            `${config.vip_info}\n\n` +
-            `⏳ <b>ينتهي العرض في:</b> ${endTime.toLocaleString('ar-EG')}`, 
-            { 
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML',
-                reply_markup: getVipPurchaseKeyboard()
-            }
-        );
+        const options = {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: getVipPurchaseKeyboard()
+        };
+
+        if (config.vip_photo) {
+            // إذا كان هناك صورة، نحتاج لحذف الرسالة النصية وإرسال صورة مع كابشن
+            bot.deleteMessage(chatId, messageId).catch(() => {});
+            bot.sendPhoto(chatId, config.vip_photo, { caption: vipText, ...options }).then((sentMsg) => {
+                startVipTimer(userId, chatId, sentMsg.message_id);
+            });
+        } else {
+            bot.editMessageText(vipText, options).then(() => {
+                startVipTimer(userId, chatId, messageId);
+            });
+        }
         bot.answerCallbackQuery(callbackQuery.id);
     }
     
@@ -590,31 +603,38 @@ bot.on('callback_query', (callbackQuery) => {
 // [ دالة مساعدة لمعالجة الإيموجي المميز بدون تكرارات ]
 // ============================================================================
 function processTextWithCustomEmojis(msg) {
-    let newText = msg.text || '';
-    if (msg.entities) {
-        // ترتيب الكيانات من النهاية للبداية لتجنب مشاكل الإزاحة (offset)
-        const entities = msg.entities.filter(e => e.type === 'custom_emoji').sort((a, b) => b.offset - a.offset);
-        
-        // لمنع تكرار نفس الإيموجي إذا تم استخدامه أكثر من مرة، نستخدم Set
-        const processedOffsets = new Set();
+    let text = msg.text || msg.caption || '';
+    let newText = '';
+    let lastIndex = 0;
+    
+    if (msg.entities || msg.caption_entities) {
+        const entities = (msg.entities || msg.caption_entities)
+            .filter(e => e.type === 'custom_emoji')
+            .sort((a, b) => a.offset - b.offset);
         
         for (const entity of entities) {
-            // تخطي إذا تمت معالجة هذا النطاق
-            if (processedOffsets.has(entity.offset)) continue;
-            processedOffsets.add(entity.offset);
+            // إضافة النص الذي يسبق الإيموجي المميز مع تنظيفه من الإيموجي العادي
+            const before = text.substring(lastIndex, entity.offset);
+            newText += cleanNormalEmojis(before);
             
             const emojiId = entity.custom_emoji_id;
-            const offset = entity.offset;
-            const length = entity.length;
-            const before = newText.substring(0, offset);
-            const after = newText.substring(offset + length);
-            const emojiChar = newText.substring(offset, offset + length) || '⭐';
+            const emojiChar = text.substring(entity.offset, entity.offset + entity.length) || '⭐';
             
-            // إضافة التاج الخاص بالتليجرام
-            newText = `${before}<tg-emoji emoji-id="${emojiId}">${emojiChar}</tg-emoji>${after}`;
+            // إضافة الإيموجي المميز فقط
+            newText += `<tg-emoji emoji-id="${emojiId}">${emojiChar}</tg-emoji>`;
+            lastIndex = entity.offset + entity.length;
         }
     }
+    
+    // إضافة ما تبقى من النص بعد آخر إيموجي مميز
+    newText += cleanNormalEmojis(text.substring(lastIndex));
     return newText;
+}
+
+// دالة لحذف الإيموجي العادي والإبقاء على النص فقط
+function cleanNormalEmojis(text) {
+    // ريجكس لحذف الإيموجي العادي (Unicode Emojis)
+    return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
 }
 
 // ============================================================================
@@ -630,18 +650,34 @@ bot.on('message', (msg) => {
     if (adminState[ADMIN_ID] === 'awaiting_welcome') {
         const newText = processTextWithCustomEmojis(msg);
         config.welcome_message = newText;
+        
+        // التحقق من وجود صورة
+        if (msg.photo) {
+            config.welcome_photo = msg.photo[msg.photo.length - 1].file_id;
+        } else {
+            config.welcome_photo = null;
+        }
+        
         saveConfig();
         delete adminState[ADMIN_ID];
-        bot.sendMessage(chatId, '✅ تم تحديث رسالة الترحيب والتعرف على الإيموجي المميزة بدقة تامة!\n\nجرب إرسال /start لرؤيتها.', { reply_markup: getAdminKeyboard() });
+        bot.sendMessage(chatId, '✅ تم تحديث رسالة الترحيب (مع الصورة إن وجدت) والتعرف على الإيموجي المميزة فقط بدقة تامة!', { reply_markup: getAdminKeyboard() });
     }
     
     // --- استقبال نص VIP ---
     else if (adminState[ADMIN_ID] === 'awaiting_vip_info') {
         const newText = processTextWithCustomEmojis(msg);
         config.vip_info = newText;
+        
+        // التحقق من وجود صورة
+        if (msg.photo) {
+            config.vip_photo = msg.photo[msg.photo.length - 1].file_id;
+        } else {
+            config.vip_photo = null;
+        }
+        
         saveConfig();
         delete adminState[ADMIN_ID];
-        bot.sendMessage(chatId, '✅ تم تحديث قسم VIP بنجاح!', { reply_markup: getAdminKeyboard() });
+        bot.sendMessage(chatId, '✅ تم تحديث قسم VIP (مع الصورة إن وجدت) بنجاح!', { reply_markup: getAdminKeyboard() });
     }
     
     // --- استقبال تعديل زر واحد (الطريقة الجديدة) ---
@@ -1356,6 +1392,8 @@ function getVipOfferTimeRemaining() {
 const vipActiveMessages = new Map(); // userId -> { chatId, messageId }
 
 function startVipTimer(userId, chatId, messageId) {
+    // إيقاف أي تايمر سابق لهذا المستخدم لتجنب التكرار
+    stopVipTimer(userId);
     vipActiveMessages.set(userId, { chatId, messageId });
 }
 
@@ -1374,17 +1412,30 @@ setInterval(() => {
         const updatedText = `${vipText}\n\n` +
             `⏳ <b>الوقت المتبقي للعرض:</b> <code>${timeInfo.text}</code>`;
         
-        bot.editMessageText(updatedText, {
+        const options = {
             chat_id: msgInfo.chatId,
             message_id: msgInfo.messageId,
             parse_mode: 'HTML',
             reply_markup: getVipPurchaseKeyboard()
-        }).catch(() => {
-            // إذا فشل التحديث (مثلاً المستخدم غادر)، نوقف التايمر
-            stopVipTimer(userId);
-        });
+        };
+
+        // التحقق إذا كانت الرسالة صورة (عبر الكابشن) أو نص
+        if (config.vip_photo) {
+            bot.editMessageCaption(updatedText, options).catch((err) => {
+                // تجنب تحديث الرسالة إذا لم يتغير النص (لتجنب أخطاء تليجرام)
+                if (!err.message.includes('message is not modified')) {
+                    stopVipTimer(userId);
+                }
+            });
+        } else {
+            bot.editMessageText(updatedText, options).catch((err) => {
+                if (!err.message.includes('message is not modified')) {
+                    stopVipTimer(userId);
+                }
+            });
+        }
     });
-}, 5000); // تحديث كل 5 ثوانٍ لتجنب Rate Limiting
+}, 1000); // تحديث كل ثانية ليكون العداد متحركاً وحياً فعلياً أمام المستخدم
 
 // تحديث callback_query لـ vip_section لتفعيل التايمر
 // (ملاحظة: هذا يُضاف كمعالج إضافي للـ vip_section)
