@@ -6,7 +6,7 @@ const TOKEN = "8866684441:AAFrzPZztyUjkgby3FeFySFWnZJauSHEbY0";
 const ADMIN_ID = 5653088167;
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
-const WEBAPP_URL = "https://pywahm.onrender.com";
+const WEBAPP_URL = "https://fokhm.com";
 
 const bot = new Telegraf(TOKEN);
 
@@ -91,6 +91,26 @@ function saveConfig(config) {
 
 let config = loadConfig();
 
+// دالة ذكية لتحويل النص والكيانات الواردة إلى تنسيق HTML مع دعم الإيموجي المميزة تلقائياً
+function parseEntitiesToHTML(text, entities) {
+    if (!entities || entities.length === 0) return text;
+    
+    // ترتيب الكيانات تنازلياً حسب الـ offset لكي لا تتأثر الإحداثيات عند إدراج الوسوم
+    const sortedEntities = [...entities].sort((a, b) => b.offset - a.offset);
+    let chars = Array.from(text);
+    
+    for (const ent of sortedEntities) {
+        if (ent.type === 'custom_emoji' && ent.custom_emoji_id) {
+            const start = ent.offset;
+            const end = ent.offset + ent.length;
+            const emojiText = chars.slice(start, end).join('');
+            const replacement = `<tg-emoji emoji-id="${ent.custom_emoji_id}">${emojiText}</tg-emoji>`;
+            chars.splice(start, ent.length, replacement);
+        }
+    }
+    return chars.join('');
+}
+
 // ==================== تصميم لوحات المفاتيح (Keyboards) ====================
 function getMainKeyboard() {
     const b = config.buttons;
@@ -168,7 +188,7 @@ bot.action('admin_stats', (ctx) => {
 
 bot.action('admin_edit_welcome', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
-    ctx.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن مع إيموجياتك المميزة:\nملاحظة: يمكنك استخدام `{name}` لاسم المستخدم:");
+    ctx.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن (يمكنك إرسال أي إيموجي مميز وسيتعرف عليه البوت تلقائياً):\nملاحظة: يمكنك استخدام `{name}` لاسم المستخدم:");
     userSessions[ctx.from.id] = { step: 'waiting_welcome' };
 });
 
@@ -228,7 +248,7 @@ bot.action(/^num_(.+)$/, (ctx) => {
             title: "تبرع لدعم منصة fokhm.com ⚡",
             description: `مساهمة مالية بقيمة ${amount} نجمة لدعم وتطوير خدمات التلغيم.`,
             payload: `donation_${userId}_${amount}`,
-            provider_token: "", // فارغة للنجوم الرقمية XTR
+            provider_token: "",
             currency: "XTR",
             prices: [{ label: `دعم ${amount} نجمة`, amount: amount }]
         });
@@ -291,19 +311,23 @@ bot.action('invite_friends', (ctx) => {
 bot.action('vip_section', (ctx) => ctx.answerCbQuery("💎 قسم VIP يمنحك صلاحيات حصرية. قم بدعوة 5 أشخاص أو تبرع بالنجوم لفتحه فوراً!", { show_alert: true }));
 bot.action('help_section', (ctx) => ctx.answerCbQuery("❓ للدعم الفني والتواصل المباشر تفضل بزيارة موقعنا: fokhm.com", { show_alert: true }));
 
-// استقبال النصوص الموجهة من الآدمن (رسالة الترحيب والأزرار والإذاعة)
+// استقبال النصوص والتعرف التلقائي على الإيموجي المميزة من رسالة الآدمن
 bot.on('text', (ctx) => {
     const userId = ctx.from.id;
     if (userId !== ADMIN_ID || !userSessions[userId]) return;
     
     const session = userSessions[userId];
-    const text = ctx.message.text;
+    const message = ctx.message;
+    const text = message.text || "";
+    const entities = message.entities || [];
     
     if (session.step === 'waiting_welcome') {
-        config.welcome_message = text;
+        // التعرف التلقائي على الإيموجي المميزة وتحويلها لصيغة HTML
+        const parsedWelcome = parseEntitiesToHTML(text, entities);
+        config.welcome_message = parsedWelcome;
         saveConfig(config);
         delete userSessions[userId];
-        ctx.reply("✅ تم تحديث رسالة الترحيب بنجاح يا فخم!", getAdminKeyboard());
+        ctx.reply("✅ تم تحديث رسالة الترحيب والتعرف على الإيموجي المميزة تلقائياً بنجاح يا فخم!", getAdminKeyboard());
     } else if (session.step === 'waiting_buttons') {
         const parts = text.split(',').map(p => p.trim());
         if (parts.length >= 6) {
@@ -323,6 +347,7 @@ bot.on('text', (ctx) => {
         }
     } else if (session.step === 'waiting_broadcast') {
         delete userSessions[userId];
+        const parsedBroadcast = parseEntitiesToHTML(text, entities);
         db.all("SELECT user_id FROM users", [], (err, rows) => {
             if (err || !rows) return ctx.reply("❌ حدث خطأ أثناء جلب المشتركين.");
             
@@ -331,7 +356,7 @@ bot.on('text', (ctx) => {
             let failed = 0;
             
             rows.forEach((row) => {
-                bot.telegram.sendMessage(row.user_id, `📢 <b>إعلان رسمي من إدارة fokhm.com:</b>\n\n${text}`, { parse_mode: 'HTML' })
+                bot.telegram.sendMessage(row.user_id, `📢 <b>إعلان رسمي من إدارة fokhm.com:</b>\n\n${parsedBroadcast}`, { parse_mode: 'HTML' })
                     .then(() => success++)
                     .catch(() => failed++);
             });
@@ -345,7 +370,7 @@ bot.on('text', (ctx) => {
 
 // تشغيل البوت
 bot.launch().then(() => {
-    console.log("🚀 Telegraf Bot for fokhm.com is running successfully!");
+    console.log("🚀 Telegraf Bot for fokhm.com with Auto Custom Emoji detection is running!");
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
