@@ -10,7 +10,7 @@ const WEBAPP_URL = "https://fokhm.com";
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// ==================== إعداد قاعدة البيانات ====================
+// ==================== قاعدة البيانات ====================
 const db = new sqlite3.Database(DB_FILE, (err) => {
     if (err) console.error("Database error:", err.message);
     else console.log("Connected to SQLite database.");
@@ -53,7 +53,7 @@ function getTotalUsers(callback) {
     });
 }
 
-// ==================== الإعدادات الافتراضية وهيكل الأزرار ====================
+// ==================== الإعدادات الافتراضية ====================
 const defaultConfig = {
     welcome_message: (
         "🏴‍☠️ <b>أهلاً بك يا {name} في نظام g5wbot الماسي</b>\n" +
@@ -91,13 +91,12 @@ function saveConfig(config) {
 
 let config = loadConfig();
 
-// التأكد من توافق بنية الأزرار القديمة والجديدة
 if (!Array.isArray(config.buttons)) {
     config.buttons = defaultConfig.buttons;
     saveConfig(config);
 }
 
-// ==================== بناء الأزرار الشفافة المرتبة بدقة ====================
+// ==================== بناء الأزرار الشفافة ====================
 function getMainKeyboard() {
     const b = config.buttons;
     const getKey = (index, defaultText, defaultCb) => {
@@ -187,7 +186,6 @@ bot.onText(/\/start/, (msg) => {
         parse_mode: 'HTML',
         reply_markup: getMainKeyboard()
     }).catch((err) => {
-        console.error("Start send error:", err.message);
         bot.sendMessage(chatId, welcomeText.replace(/<tg-emoji[^>]*>.*?<\/tg-emoji>/g, ''), {
             reply_markup: getMainKeyboard()
         });
@@ -205,7 +203,7 @@ bot.onText(/\/admin/, (msg) => {
     });
 });
 
-// ==================== إدارة أزرار الـ Callback ====================
+// ==================== معالجة الاستعلامات ====================
 bot.on('callback_query', (callbackQuery) => {
     const msg = callbackQuery.message;
     const data = callbackQuery.data;
@@ -218,11 +216,11 @@ bot.on('callback_query', (callbackQuery) => {
             const vipStatus = stats.vip || userId === ADMIN_ID ? "💎 عضو مميز (VIP)" : "🛡 عضو عادي";
             bot.sendMessage(chatId, 
                 `🥷 <b>معلومات حسابك الشخصي:</b>\n\n` +
-                `🆔 المعرّف: <code>${userId}</code>\n` +
+                `🆔 المعرّف: <code>{userId}</code>\n` +
                 `⚡ الرتبة: ${vipStatus}\n` +
-                `👥 عدد الدعوات: <b>${stats.referrals}</b> شخص\n` +
-                `⭐ إجمالي التبرعات: <b>${stats.stars}</b> نجمة\n` +
-                `🌐 المنصة: <b>fokhm.com</b>`,
+                `👥 عدد الدعوات: <b>{stats.referrals}</b> شخص\n` +
+                `⭐ إجمالي التبرعات: <b>{stats.stars}</b> نجمة\n` +
+                `🌐 المنصة: <b>fokhm.com</b>`.replace('{userId}', userId).replace('{stats.referrals}', stats.referrals).replace('{stats.stars}', stats.stars),
                 { parse_mode: 'HTML' }
             );
         });
@@ -231,7 +229,7 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
             const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
-            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>${inviteLink}</code>`, { parse_mode: 'HTML' });
+            bot.sendMessage(chatId, `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك:\n\n<code>{inviteLink}</code>`, { parse_mode: 'HTML' });
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -245,9 +243,9 @@ bot.on('callback_query', (callbackQuery) => {
         getTotalUsers((count) => {
             bot.editMessageText(
                 `📊 <b>إحصائيات بوت fokhm.com:</b>\n\n` +
-                `👥 إجمالي المشتركين: <b>${count}</b> عضو\n` +
+                `👥 إجمالي المشتركين: <b>{count}</b> عضو\n` +
                 `⚡ حالة الخادم: يعمل بكفاءة عالية (Node.js)\n` +
-                `👑 المشرف العام: <code>${ADMIN_ID}</code>`,
+                `👑 المشرف العام: <code>{ADMIN_ID}</code>`.replace('{count}', count),
                 { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminKeyboard() }
             );
         });
@@ -255,7 +253,7 @@ bot.on('callback_query', (callbackQuery) => {
     }
     else if (data === 'admin_edit_welcome' && userId === ADMIN_ID) {
         adminState[ADMIN_ID] = 'awaiting_welcome';
-        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* يمكنك إرسال الإيموجي المميز داخل النص وسيتم حفظه تلقائياً.", {
+        bot.editMessageText("✍️ أرسل رسالة الترحيب الجديدة الآن.\n\n*ملاحظة:* أرسل الإيموجي المميز داخل النص وسيتم حفظه تلقائياً.", {
             chat_id: chatId,
             message_id: messageId
         });
@@ -267,7 +265,7 @@ bot.on('callback_query', (callbackQuery) => {
             "🔘 <b>تعديل أسماء الأزرار مع الإيموجي المميز:</b>\n\n" +
             "أرسل الأزرار الستة مفصولة بفاصلة `,` بالترتيب:\n" +
             "<code>زر الحقن,زر الحساب,زر الدعوة,زر VIP,زر المساعدة,زر التبرع</code>\n\n" +
-            "📌 <i>ملاحظة:</i> أرسل بجانب اسم الزر إيموجي مميز إذا رغبت بالتقاطه أوتوماتيكياً لكل زر!",
+            "📌 <i>ملاحظة:</i> ضع بجانب كل زر إيموجيه المميز الخاص به لكي يلتقطه البوت لكل زر على حدة بدقة!",
             { chat_id: chatId, message_id: messageId, parse_mode: 'HTML' }
         );
         bot.answerCallbackQuery(callbackQuery.id);
@@ -316,7 +314,7 @@ bot.on('callback_query', (callbackQuery) => {
         } else if (action === 'confirm') {
             const amount = parseInt(current || "1");
             delete donationSessions[userId];
-            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, {
+            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>{amount}</b> نجمة (Telegram Stars).`.replace('{amount}', amount), {
                 chat_id: chatId,
                 message_id: messageId,
                 parse_mode: 'HTML'
@@ -346,7 +344,7 @@ bot.on('callback_query', (callbackQuery) => {
     }
 });
 
-// ==================== معالجة الرسائل والتقاط الإيموجي أوتوماتيكياً للآدمن ====================
+// ==================== معالجة الرسائل والربط الدقيق لكل زر على حدة ====================
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -378,34 +376,36 @@ bot.on('message', (msg) => {
         
         if (parts.length >= 6) {
             const defaultCallbacks = ["web_app", "my_account", "invite_friends", "vip_section", "help_section", "start_donation"];
-            
-            // استخراج الكيانات (الإيموجي المميز) المرفقة مع رسالة الآدمن للأزرار
             const entities = msg.entities || [];
             
+            // تقسيم النص الإجمالي إلى أجزاء ومعرفة حدود كل زر لربط إيموجيه الخاص به حصرياً
+            let currentIndex = 0;
             config.buttons = parts.slice(0, 6).map((partText, index) => {
-                let foundEmojiId = null;
-                
-                // البحث عما إذا كان هناك إيموجي مميز داخل هذا الجزء النصي بناءً على الـ offset
-                // (هندسة استخراج الـ custom_emoji المخصص لكل زر إذا أرسله الآدمن)
+                let assignedEmojiId = null;
+                const partStart = rawText.indexOf(partText, currentIndex);
+                const partEnd = partStart + partText.length;
+                currentIndex = partEnd;
+
+                // البحث عن الإيموجي المميز الذي يقع نطاقه داخل هذا الزر فقط
                 for (const ent of entities) {
                     if (ent.type === 'custom_emoji' && ent.custom_emoji_id) {
-                        // إذا كان موقع الإيموجي يقع ضمن نطاق هذا الزر النصي
-                        // نقوم بالتقاط الـ ID وتنظيف النص من النص الخام إن أمكن أو إبقائه نظيفاً
-                        foundEmojiId = ent.custom_emoji_id;
-                        break; // نأخذ أول إيموجي مميز مرفق للزر كأيقونة
+                        if (ent.offset >= partStart && ent.offset < partEnd) {
+                            assignedEmojiId = ent.custom_emoji_id;
+                            break;
+                        }
                     }
                 }
 
                 return {
                     text: partText.replace(/<[^>]*>?/gm, '').trim(),
                     callback_data: defaultCallbacks[index],
-                    emoji_id: foundEmojiId
+                    emoji_id: assignedEmojiId
                 };
             });
 
             saveConfig();
             delete adminState[ADMIN_ID];
-            bot.sendMessage(chatId, '✅ تم تحديث أسماء الأزرار والتقاط الأيقونات المميزة (Custom Emojis) بنجاح يا فخم!', { reply_markup: getAdminKeyboard() });
+            bot.sendMessage(chatId, '✅ تم تحديث أسماء الأزرار وربط كل إيموجي مميز بالزر المخصص له بدقة تامة يا فخم!', { reply_markup: getAdminKeyboard() });
         } else {
             bot.sendMessage(chatId, '❌ الصيغة غير صحيحة. يجب إرسال 6 أسماء مفصولة بـ `,`.');
         }
@@ -471,5 +471,5 @@ bot.on('successful_payment', (msg) => {
     });
 });
 
-console.log('🤖 بوت fokhm.com يعمل الآن بنظام مرتب وبدون أي تكرار أو إيموجي ثابتة...');
+console.log('🤖 بوت fokhm.com يعمل الآن بنظام دقيق لربط كل إيموجي بالزر الخاص به...');
 
