@@ -176,7 +176,7 @@ function getMainKeyboard() {
             [getKey(1, "معلومات حسابي", "my_account"), getKey(2, "دعوة صديق (ربح)", "invite_friends")],
             [getKey(3, "قسم VIP 👑", "vip_section"), getKey(4, "مساعدة", "help_section")],
             [getKey(5, "تبرع للبوت", "start_donation")],
-            [{ text: "�� المكافأة اليومية", callback_data: "daily_reward" }, { text: "❓ الأسئلة الشائعة", callback_data: "faq_section" }]
+            [{ text: "❓ الأسئلة الشائعة", callback_data: "faq_section" }]
         ]
     };
 }
@@ -272,6 +272,17 @@ function getAdminStatsKeyboard() {
         [{ text: "�� رجوع", callback_data: "admin_panel" }]
     ]};
 }
+// دالة مساعدة لتعديل أو إرسال رسالة (تتعامل مع الصور)
+function safeEditOrSend(chatId, messageId, text, options = {}) {
+    const opts = { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', ...options };
+    return bot.editMessageText(text, opts).catch(() => {
+        // إذا فشل التعديل (ربما رسالة صورة) نحذف ونرسل جديد
+        return bot.deleteMessage(chatId, messageId).catch(() => {}).then(() => {
+            return bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: options.reply_markup });
+        });
+    });
+}
+
 
 // قائمة تعديل الأزرار بشكل منفصل
 function getButtonsEditMenu() {
@@ -300,6 +311,7 @@ function getVipPurchaseKeyboard() {
 // [ حالة الجلسات ]
 // ============================================================================
 const adminState = {};
+const userSupportState = {};
 const donationSessions = {};
 const editButtonState = {}; // لتتبع أي زر يتم تعديله
 
@@ -365,12 +377,42 @@ bot.on('callback_query', (callbackQuery) => {
     // --- القائمة الرئيسية ---
     if (data === 'main_menu') {
         let welcomeText = config.welcome_message.replace(/{name}/g, callbackQuery.from.first_name);
-        bot.editMessageText(welcomeText, {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: getMainKeyboard()
-        }).catch(() => {});
+        // التحقق إذا الرسالة الأصلية فيها صورة (caption) أو نص عادي
+        if (msg.photo || msg.animation || msg.document) {
+            // الرسالة فيها ميديا - نستخدم editMessageCaption
+            bot.editMessageCaption(welcomeText, {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'HTML',
+                reply_markup: getMainKeyboard()
+            }).catch(() => {
+                // إذا فشل، نحذف ونرسل من جديد
+                bot.deleteMessage(chatId, messageId).catch(() => {});
+                if (config.welcome_photo) {
+                    bot.sendPhoto(chatId, config.welcome_photo, { caption: welcomeText, parse_mode: 'HTML', reply_markup: getMainKeyboard() }).catch(() => {
+                        bot.sendMessage(chatId, welcomeText, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+                    });
+                } else {
+                    bot.sendMessage(chatId, welcomeText, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+                }
+            });
+        } else {
+            // رسالة نصية عادية
+            if (config.welcome_photo) {
+                // الترحيب فيه صورة لكن الرسالة الحالية نص - نحذف ونرسل صورة
+                bot.deleteMessage(chatId, messageId).catch(() => {});
+                bot.sendPhoto(chatId, config.welcome_photo, { caption: welcomeText, parse_mode: 'HTML', reply_markup: getMainKeyboard() }).catch(() => {
+                    bot.sendMessage(chatId, welcomeText, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+                });
+            } else {
+                bot.editMessageText(welcomeText, {
+                    chat_id: chatId,
+                    message_id: messageId,
+                    parse_mode: 'HTML',
+                    reply_markup: getMainKeyboard()
+                }).catch(() => {});
+            }
+        }
         bot.answerCallbackQuery(callbackQuery.id);
     }
 
@@ -472,9 +514,82 @@ bot.on('callback_query', (callbackQuery) => {
         bot.answerCallbackQuery(callbackQuery.id);
     }
     
-    // --- مساعدة ---
+    // --- مساعدة (نظام تذاكر الدعم) ---
     else if (data === 'help_section') {
-        bot.answerCallbackQuery(callbackQuery.id, { text: "❓ للدعم الفني تواصل عبر موقعنا: fokhm.com", show_alert: true });
+        bot.editMessageText(
+            `❓ <b>الدعم الفني:</b>\n\nاختر نوع المساعدة:`,
+            {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "�� مشكلة تقنية", callback_data: "support_technical" }],
+                        [{ text: "�� مشكلة دفع", callback_data: "support_payment" }],
+                        [{ text: "❓ استفسار عام", callback_data: "support_general" }],
+                        [{ text: "�� تذاكري السابقة", callback_data: "my_tickets" }],
+                        [{ text: "�� رجوع", callback_data: "main_menu" }]
+                    ]
+                }
+            }
+        ).catch(() => {
+            bot.deleteMessage(chatId, messageId).catch(() => {});
+            bot.sendMessage(chatId, `❓ <b>الدعم الفني:</b>\n\nاختر نوع المساعدة:`, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "�� مشكلة تقنية", callback_data: "support_technical" }],
+                        [{ text: "�� مشكلة دفع", callback_data: "support_payment" }],
+                        [{ text: "❓ استفسار عام", callback_data: "support_general" }],
+                        [{ text: "�� تذاكري السابقة", callback_data: "my_tickets" }],
+                        [{ text: "�� رجوع", callback_data: "main_menu" }]
+                    ]
+                }
+            });
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    // --- أنواع تذاكر الدعم ---
+    else if (data === 'support_technical' || data === 'support_payment' || data === 'support_general') {
+        const types = { support_technical: '�� مشكلة تقنية', support_payment: '�� مشكلة دفع', support_general: '❓ استفسار عام' };
+        if (!userSupportState) global.userSupportState = {};
+        userSupportState[userId] = { type: data, step: 'awaiting_message' };
+        bot.editMessageText(
+            `�� <b>تذكرة جديدة - ${types[data]}</b>\n\nاكتب رسالتك وسيتم إرسالها للإدارة:`,
+            { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "help_section" }]] } }
+        ).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    // --- تذاكري السابقة ---
+    else if (data === 'my_tickets') {
+        db.all("SELECT id, subject, status, created_at FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", [userId], (err, rows) => {
+            if (!rows || rows.length === 0) {
+                bot.editMessageText("�� <b>تذاكرك:</b>\n\nلا توجد تذاكر سابقة.", { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] } }).catch(() => {});
+            } else {
+                let text = "�� <b>تذاكرك:</b>\n\n";
+                rows.forEach(r => {
+                    const status = r.status === 'open' ? '�� مفتوحة' : '�� مغلقة';
+                    const date = new Date(r.created_at).toLocaleDateString('ar-EG');
+                    text += `#${r.id} | ${status} | ${r.subject}\n�� ${date}\n\n`;
+                });
+                bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] } }).catch(() => {});
+            }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    // --- رد الأدمن على تذكرة ---
+    else if (data.startsWith('admin_reply_ticket_') && userId === ADMIN_ID) {
+        const ticketId = parseInt(data.replace('admin_reply_ticket_', ''));
+        adminState[ADMIN_ID] = `awaiting_ticket_reply_${ticketId}`;
+        bot.editMessageText(`�� <b>الرد على التذكرة #${ticketId}:</b>\n\nاكتب ردك:`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_panel" }]] } }).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    else if (data.startsWith('admin_close_ticket_') && userId === ADMIN_ID) {
+        const ticketId = parseInt(data.replace('admin_close_ticket_', ''));
+        closeSupportTicket(ticketId, () => {
+            bot.editMessageText(`✅ تم إغلاق التذكرة #${ticketId}`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminKeyboard() }).catch(() => {});
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
     }
     
     // ==================== لوحة الأدمن ====================
@@ -756,7 +871,14 @@ bot.on('message', (msg) => {
         saveConfig();
         delete adminState[ADMIN_ID];
         bot.sendMessage(chatId, '✅ تم تحديث رسالة الترحيب!', { reply_markup: getAdminKeyboard() });
-        bot.sendMessage(chatId, `�� <b>معاينة:</b>\n\n${newText}`, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+        // معاينة مع الصورة إن وجدت
+        if (config.welcome_photo) {
+            bot.sendPhoto(chatId, config.welcome_photo, { caption: `�� <b>معاينة:</b>\n\n${newText}`, parse_mode: 'HTML', reply_markup: getMainKeyboard() }).catch(() => {
+                bot.sendMessage(chatId, `�� <b>معاينة:</b>\n\n${newText}`, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+            });
+        } else {
+            bot.sendMessage(chatId, `�� <b>معاينة:</b>\n\n${newText}`, { parse_mode: 'HTML', reply_markup: getMainKeyboard() });
+        }
     }
     
     // --- استقبال نص VIP ---
@@ -791,8 +913,10 @@ bot.on('message', (msg) => {
                 }
             }
             
-            // إزالة التنسيقات من النص ليكون نظيفاً للزر
-            const cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+            // إزالة التنسيقات والإيموجي العادي من النص ليكون نظيفاً للزر
+            let cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
+            // حذف الإيموجي العادي من نص الزر (نحتفظ فقط بالمميز عبر emoji_id)
+            cleanText = cleanNormalEmojis(cleanText).trim();
             
             config.buttons[btnIndex].text = cleanText;
             config.buttons[btnIndex].emoji_id = assignedEmojiId;
@@ -808,7 +932,35 @@ bot.on('message', (msg) => {
         }
     }
     
-    // --- استقبال نص الإذاعة ---
+    // --- استقبال رسالة دعم من المستخدم ---
+    if (userSupportState[userId] && userSupportState[userId].step === 'awaiting_message') {
+        const supportType = userSupportState[userId].type;
+        const types = { support_technical: '�� مشكلة تقنية', support_payment: '�� مشكلة دفع', support_general: '❓ استفسار عام' };
+        const subject = types[supportType] || 'دعم';
+        const userMessage = msg.text || msg.caption || '';
+        delete userSupportState[userId];
+        
+        if (!userMessage.trim()) {
+            bot.sendMessage(chatId, "❌ أرسل رسالة نصية.", { reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] } });
+            return;
+        }
+        
+        openSupportTicket(userId, subject, userMessage, (err, ticketId) => {
+            if (err) { bot.sendMessage(chatId, "❌ حدث خطأ."); return; }
+            bot.sendMessage(chatId, `✅ <b>تم إرسال تذكرتك!</b>\n\n�� رقم التذكرة: #${ticketId}\n�� النوع: ${subject}\n\nسيتم الرد عليك قريباً.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] } });
+            // إشعار الأدمن
+            bot.sendMessage(ADMIN_ID, `�� <b>تذكرة دعم جديدة #${ticketId}</b>\n\n�� المستخدم: <code>${userId}</code>\n�� النوع: ${subject}\n�� الرسالة:\n${userMessage}`, {
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: [
+                    [{ text: "✏️ رد", callback_data: `admin_reply_ticket_${ticketId}` }],
+                    [{ text: "✅ إغلاق", callback_data: `admin_close_ticket_${ticketId}` }]
+                ]}
+            });
+        });
+        return;
+    }
+    
+        // --- استقبال نص الإذاعة ---
     else if (adminState[ADMIN_ID] === 'awaiting_broadcast') {
         delete adminState[ADMIN_ID];
         const broadcastText = processTextWithCustomEmojis(msg);
@@ -855,6 +1007,23 @@ bot.on('message', (msg) => {
     else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_faq_edit_')) { const i=parseInt(adminState[ADMIN_ID].replace('awaiting_faq_edit_','')); delete adminState[ADMIN_ID]; const raw=processTextWithCustomEmojis(msg); const parts=raw.split('|'); if(parts.length<2){bot.sendMessage(chatId,"❌ الصيغة: السؤال|الإجابة",{reply_markup:getAdminSettingsKeyboard()});return;} FAQ_DATA[i]={question:parts[0].trim(),answer:parts.slice(1).join('|').trim()}; saveFaqData(); bot.sendMessage(chatId,`✅ تم تحديث السؤال ${i+1}!`,{reply_markup:getAdminSettingsKeyboard()}); }
     // --- FAQ إضافة ---
     else if (adminState[ADMIN_ID] === 'awaiting_faq_add') { delete adminState[ADMIN_ID]; const raw=processTextWithCustomEmojis(msg); const parts=raw.split('|'); if(parts.length<2){bot.sendMessage(chatId,"❌ الصيغة: السؤال|الإجابة",{reply_markup:getAdminSettingsKeyboard()});return;} FAQ_DATA.push({question:parts[0].trim(),answer:parts.slice(1).join('|').trim()}); saveFaqData(); bot.sendMessage(chatId,`✅ تمت الإضافة! العدد: ${FAQ_DATA.length}`,{reply_markup:getAdminSettingsKeyboard()}); }
+    // --- رد الأدمن على تذكرة ---
+    else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_ticket_reply_')) {
+        const ticketId = parseInt(adminState[ADMIN_ID].replace('awaiting_ticket_reply_', ''));
+        delete adminState[ADMIN_ID];
+        const replyText = msg.text || '';
+        if (!replyText.trim()) { bot.sendMessage(chatId, "❌ أرسل رد نصي."); return; }
+        // جلب معرف المستخدم من التذكرة وإرسال الرد له
+        db.get("SELECT user_id FROM support_tickets WHERE id = ?", [ticketId], (err, row) => {
+            if (!row) { bot.sendMessage(chatId, "❌ تذكرة غير موجودة.", { reply_markup: getAdminKeyboard() }); return; }
+            bot.sendMessage(row.user_id, `�� <b>رد من الإدارة على تذكرتك #${ticketId}:</b>\n\n${replyText}`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] } }).then(() => {
+                bot.sendMessage(chatId, `✅ تم إرسال الرد للمستخدم <code>${row.user_id}</code>`, { parse_mode: 'HTML', reply_markup: getAdminKeyboard() });
+            }).catch(() => {
+                bot.sendMessage(chatId, "❌ فشل الإرسال (المستخدم ربما حظر البوت).", { reply_markup: getAdminKeyboard() });
+            });
+        });
+    }
+
 
 });
 
