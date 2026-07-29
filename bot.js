@@ -18,7 +18,7 @@ const fs = require('fs');
 // ============================================================================
 // [ إعدادات البوت الأساسية ]
 // ============================================================================
-const TOKEN = "8828318815:AAGI32vqE7dlv1BCUBgrmYqUZ0O5mVOq8ds";
+const TOKEN = "8828318815:AAEs-SolJxEucXbuz1vJbozJCyUO0ogplKI";
 const ADMIN_ID = 5653088167;
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
@@ -175,7 +175,9 @@ function getMainKeyboard() {
             [getKey(0, "حقن وتلغيم تطبيق", "web_app")],
             [getKey(1, "معلومات حسابي", "my_account"), getKey(2, "دعوة صديق (ربح)", "invite_friends")],
             [getKey(3, "قسم VIP 👑", "vip_section"), getKey(4, "مساعدة", "help_section")],
-            [getKey(5, "تبرع للبوت", "start_donation")]
+            [getKey(5, "تبرع للبوت", "start_donation")],
+            [{ text: "🎁 المكافأة اليومية", callback_data: "daily_reward" }, { text: "📊 إحصائياتي", callback_data: "my_stats" }],
+            [{ text: "❓ الأسئلة الشائعة", callback_data: "faq_section" }, { text: "🆔 معرفي", callback_data: "my_id" }]
         ]
     };
 }
@@ -215,12 +217,81 @@ function getNumberPad(val = "5") {
 function getAdminKeyboard() {
     return {
         inline_keyboard: [
-            [{ text: "📊 إحصائيات البوت", callback_data: "admin_stats" }],
+            [{ text: "👥 إدارة المستخدمين", callback_data: "admin_cat_users" }, { text: "📢 الإذاعة والاستطلاعات", callback_data: "admin_cat_broadcast" }],
+            [{ text: "⚙️ إعدادات البوت", callback_data: "admin_cat_settings" }, { text: "🛠 النظام والصيانة", callback_data: "admin_cat_system" }],
+            [{ text: "🎟 الكوبونات", callback_data: "admin_cat_coupons" }, { text: "📊 الإحصائيات", callback_data: "admin_cat_stats" }],
+            [{ text: "🏠 القائمة الرئيسية", callback_data: "admin_home" }]
+        ]
+    };
+}
+
+// قائمة إدارة المستخدمين
+function getAdminUsersKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: "🚫 حظر مستخدم", callback_data: "admin_ban_user" }, { text: "✅ رفع حظر", callback_data: "admin_unban_user" }],
+            [{ text: "👑 منح VIP", callback_data: "admin_vip_add" }, { text: "❌ إلغاء VIP", callback_data: "admin_vip_remove" }],
+            [{ text: "📨 رسالة لمستخدم", callback_data: "admin_msg_user" }],
+            [{ text: "👥 آخر المستخدمين", callback_data: "admin_last_users" }, { text: "📤 تصدير CSV", callback_data: "admin_export_users" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
+        ]
+    };
+}
+
+// قائمة الإذاعة
+function getAdminBroadcastKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: "📢 إذاعة عامة", callback_data: "admin_broadcast" }],
+            [{ text: "👑 إذاعة VIP فقط", callback_data: "admin_broadcast_vip" }],
+            [{ text: "📊 إرسال استطلاع", callback_data: "admin_send_poll" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
+        ]
+    };
+}
+
+// قائمة إعدادات البوت
+function getAdminSettingsKeyboard() {
+    return {
+        inline_keyboard: [
             [{ text: "📝 تعديل رسالة الترحيب", callback_data: "admin_edit_welcome" }],
             [{ text: "🔘 تعديل أسماء الأزرار", callback_data: "admin_edit_buttons_menu" }],
-            [{ text: "📢 إذاعة عامة للأعضاء", callback_data: "admin_broadcast" }],
             [{ text: "👑 تعديل معلومات VIP", callback_data: "admin_edit_vip" }],
-            [{ text: "🏠 القائمة الرئيسية", callback_data: "admin_home" }]
+            [{ text: "⚙️ الإعدادات الديناميكية", callback_data: "admin_dynamic_settings" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
+        ]
+    };
+}
+
+// قائمة النظام والصيانة
+function getAdminSystemKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: "💚 صحة البوت", callback_data: "admin_health" }],
+            [{ text: "🔄 إعادة تحميل الإعدادات", callback_data: "admin_restart" }, { text: "🗑 مسح الكاش", callback_data: "admin_clear_cache" }],
+            [{ text: "📋 سجل التحديثات", callback_data: "admin_version" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
+        ]
+    };
+}
+
+// قائمة الكوبونات
+function getAdminCouponsKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: "➕ إنشاء كوبون جديد", callback_data: "admin_create_coupon" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
+        ]
+    };
+}
+
+// قائمة الإحصائيات
+function getAdminStatsKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: "📊 إحصائيات عامة", callback_data: "admin_stats" }],
+            [{ text: "📈 إحصائيات مفصلة", callback_data: "admin_detailed_stats" }],
+            [{ text: "🔙 رجوع", callback_data: "admin_panel" }]
         ]
     };
 }
@@ -546,6 +617,327 @@ bot.on('callback_query', (callbackQuery) => {
         bot.answerCallbackQuery(callbackQuery.id);
     }
     
+    // --- رجوع للوحة الأدمن (من القوائم الفرعية) ---
+    else if (data === 'admin_panel' && userId === ADMIN_ID) {
+        delete adminState[ADMIN_ID];
+        delete editButtonState[ADMIN_ID];
+        bot.editMessageText("🛠 <b>لوحة تحكم الآدمن الماسية (fokhm.com):</b>\nاختر القسم المطلوب:", {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: getAdminKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // ==================== أقسام لوحة الأدمن الفرعية ====================
+    
+    // --- قسم إدارة المستخدمين ---
+    else if (data === 'admin_cat_users' && userId === ADMIN_ID) {
+        bot.editMessageText("👥 <b>إدارة المستخدمين:</b>\nاختر العملية المطلوبة:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- قسم الإذاعة ---
+    else if (data === 'admin_cat_broadcast' && userId === ADMIN_ID) {
+        bot.editMessageText("📢 <b>الإذاعة والاستطلاعات:</b>\nاختر نوع الإرسال:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminBroadcastKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- قسم الإعدادات ---
+    else if (data === 'admin_cat_settings' && userId === ADMIN_ID) {
+        bot.editMessageText("⚙️ <b>إعدادات البوت:</b>\nاختر ما تريد تعديله:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSettingsKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- قسم النظام ---
+    else if (data === 'admin_cat_system' && userId === ADMIN_ID) {
+        bot.editMessageText("🛠 <b>النظام والصيانة:</b>\nاختر العملية:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSystemKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- قسم الكوبونات ---
+    else if (data === 'admin_cat_coupons' && userId === ADMIN_ID) {
+        bot.editMessageText("🎟 <b>إدارة الكوبونات:</b>\nاختر العملية:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminCouponsKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- قسم الإحصائيات ---
+    else if (data === 'admin_cat_stats' && userId === ADMIN_ID) {
+        bot.editMessageText("📊 <b>الإحصائيات:</b>\nاختر نوع الإحصائيات:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminStatsKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // ==================== أزرار الأدمن الجديدة ====================
+    
+    // --- حظر مستخدم ---
+    else if (data === 'admin_ban_user' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_ban_input';
+        bot.editMessageText("🚫 <b>حظر مستخدم:</b>\n\nأرسل معرف المستخدم والسبب بالشكل التالي:\n<code>USER_ID السبب</code>\n\nمثال: <code>123456789 سبام</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_users" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- رفع حظر ---
+    else if (data === 'admin_unban_user' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_unban_input';
+        bot.editMessageText("✅ <b>رفع حظر مستخدم:</b>\n\nأرسل معرف المستخدم:\n<code>USER_ID</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_users" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- منح VIP ---
+    else if (data === 'admin_vip_add' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_vip_add_input';
+        bot.editMessageText("👑 <b>منح VIP لمستخدم:</b>\n\nأرسل معرف المستخدم:\n<code>USER_ID</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_users" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إلغاء VIP ---
+    else if (data === 'admin_vip_remove' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_vip_remove_input';
+        bot.editMessageText("❌ <b>إلغاء VIP من مستخدم:</b>\n\nأرسل معرف المستخدم:\n<code>USER_ID</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_users" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- رسالة لمستخدم ---
+    else if (data === 'admin_msg_user' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_msg_user_input';
+        bot.editMessageText("📨 <b>إرسال رسالة لمستخدم:</b>\n\nأرسل بالشكل التالي:\n<code>USER_ID النص</code>\n\nمثال: <code>123456789 مرحباً بك</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_users" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- آخر المستخدمين ---
+    else if (data === 'admin_last_users' && userId === ADMIN_ID) {
+        db.all("SELECT user_id, username, first_name, joined_at, is_vip FROM users ORDER BY joined_at DESC LIMIT 10", [], (err, rows) => {
+            if (err || !rows || rows.length === 0) {
+                bot.editMessageText("لا يوجد مستخدمون.", { chat_id: chatId, message_id: messageId, reply_markup: getAdminUsersKeyboard() });
+                return;
+            }
+            let text = `👥 <b>آخر 10 مستخدمين:</b>\n\n`;
+            rows.forEach((row, i) => {
+                const date = new Date(row.joined_at).toLocaleDateString('ar-EG');
+                const vipBadge = row.is_vip ? " 💎" : "";
+                text += `${i + 1}. <code>${row.user_id}</code> - ${row.first_name || 'غير معروف'}${vipBadge} (${date})\n`;
+            });
+            bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() });
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- تصدير المستخدمين ---
+    else if (data === 'admin_export_users' && userId === ADMIN_ID) {
+        db.all("SELECT user_id, username, first_name, joined_at, is_vip, stars_donated, referral_count FROM users", [], (err, rows) => {
+            if (err || !rows) {
+                bot.answerCallbackQuery(callbackQuery.id, { text: "❌ خطأ في التصدير.", show_alert: true });
+                return;
+            }
+            const csvContent = "user_id,username,first_name,joined_at,is_vip,stars_donated,referral_count\n" +
+                rows.map(r => `${r.user_id},${r.username || ''},${r.first_name || ''},${r.joined_at},${r.is_vip},${r.stars_donated},${r.referral_count}`).join('\n');
+            const exportFile = `users_export_${Date.now()}.csv`;
+            fs.writeFileSync(exportFile, csvContent, 'utf8');
+            bot.sendDocument(chatId, exportFile, {}, { filename: 'users.csv', contentType: 'text/csv' })
+                .then(() => fs.unlinkSync(exportFile))
+                .catch(() => bot.sendMessage(chatId, "❌ فشل إرسال الملف."));
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إذاعة VIP فقط ---
+    else if (data === 'admin_broadcast_vip' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_broadcast_vip';
+        bot.editMessageText("👑 <b>إذاعة لأعضاء VIP فقط:</b>\n\nأرسل نص الرسالة:", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_broadcast" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إرسال استطلاع ---
+    else if (data === 'admin_send_poll' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_poll_input';
+        bot.editMessageText("📊 <b>إرسال استطلاع:</b>\n\nأرسل بالشكل التالي (افصل بـ |):\n<code>السؤال|خيار1|خيار2|خيار3</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_broadcast" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- صحة البوت ---
+    else if (data === 'admin_health' && userId === ADMIN_ID) {
+        const health = getBotHealth();
+        const uptimeHours = Math.floor(health.uptime / 3600);
+        const uptimeMinutes = Math.floor((health.uptime % 3600) / 60);
+        const memoryMB = Math.round(health.memory.heapUsed / 1024 / 1024);
+        bot.editMessageText(
+            `💚 <b>حالة البوت:</b>\n\n` +
+            `✅ الحالة: ${health.status}\n` +
+            `⏱ وقت التشغيل: ${uptimeHours}h ${uptimeMinutes}m\n` +
+            `💾 الذاكرة المستخدمة: ${memoryMB} MB\n` +
+            `🤖 الإصدار: ${health.version}`,
+            { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSystemKeyboard() }
+        );
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إعادة تحميل الإعدادات ---
+    else if (data === 'admin_restart' && userId === ADMIN_ID) {
+        config = loadConfig();
+        bot.editMessageText("✅ <b>تم إعادة تحميل الإعدادات بنجاح!</b>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSystemKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- مسح الكاش ---
+    else if (data === 'admin_clear_cache' && userId === ADMIN_ID) {
+        userCache.clear();
+        userMessageCounts.clear();
+        bot.editMessageText("✅ <b>تم مسح الذاكرة المؤقتة بنجاح!</b>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSystemKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- سجل التحديثات ---
+    else if (data === 'admin_version' && userId === ADMIN_ID) {
+        let changelogText = `📋 <b>سجل التحديثات:</b>\n\n`;
+        CHANGELOG.forEach(release => {
+            changelogText += `<b>v${release.version}</b> (${release.date}):\n`;
+            release.changes.forEach(change => {
+                changelogText += `• ${change}\n`;
+            });
+            changelogText += '\n';
+        });
+        bot.editMessageText(changelogText, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSystemKeyboard() });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- الإعدادات الديناميكية ---
+    else if (data === 'admin_dynamic_settings' && userId === ADMIN_ID) {
+        const settingsText = Object.entries(dynamicSettings)
+            .map(([key, value]) => `• <b>${key}:</b> <code>${value}</code>`)
+            .join('\n');
+        bot.editMessageText(`⚙️ <b>الإعدادات الديناميكية:</b>\n\n${settingsText}`, {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminSettingsKeyboard()
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إحصائيات مفصلة ---
+    else if (data === 'admin_detailed_stats' && userId === ADMIN_ID) {
+        getDetailedStats((stats) => {
+            bot.editMessageText(
+                `📊 <b>إحصائيات مفصلة:</b>\n\n` +
+                `👥 إجمالي المستخدمين: <b>${stats.totalUsers}</b>\n` +
+                `💎 مستخدمو VIP: <b>${stats.vipUsers}</b>\n` +
+                `⭐ إجمالي النجوم: <b>${stats.totalStars || 0}</b>\n` +
+                `📅 انضم اليوم: <b>${stats.todayJoined}</b>`,
+                { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getAdminStatsKeyboard() }
+            );
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إنشاء كوبون ---
+    else if (data === 'admin_create_coupon' && userId === ADMIN_ID) {
+        adminState[ADMIN_ID] = 'awaiting_coupon_input';
+        bot.editMessageText("🎟 <b>إنشاء كوبون جديد:</b>\n\nأرسل بالشكل التالي:\n<code>الكود نسبة_الخصم عدد_الاستخدامات ساعات_الصلاحية</code>\n\nمثال: <code>SALE50 50 10 48</code>", {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_cat_coupons" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // ==================== أزرار المستخدمين الجديدة ====================
+    
+    // --- المكافأة اليومية ---
+    else if (data === 'daily_reward') {
+        claimDailyReward(userId, (result) => {
+            bot.editMessageText(
+                `🎁 <b>المكافأة اليومية:</b>\n\n${result.message}`,
+                { 
+                    chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+                    reply_markup: { inline_keyboard: [[{ text: "🔙 رجوع", callback_data: "main_menu" }]] }
+                }
+            );
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- إحصائياتي ---
+    else if (data === 'my_stats') {
+        getUserStats(userId, (stats) => {
+            getUserPoints(userId, (pointsData) => {
+                const levelName = getLevelName(pointsData.level);
+                bot.editMessageText(
+                    `📊 <b>إحصائياتك الشخصية:</b>\n\n` +
+                    `🆔 المعرف: <code>${userId}</code>\n` +
+                    `🏆 المستوى: ${levelName} (${pointsData.level})\n` +
+                    `⚡ النقاط: <b>${pointsData.points}</b>\n` +
+                    `👥 الدعوات: <b>${stats.referrals}</b>\n` +
+                    `⭐ التبرعات: <b>${stats.stars}</b> نجمة\n` +
+                    `💎 VIP: ${stats.vip ? '✅ نشط' : '❌ غير مشترك'}`,
+                    { 
+                        chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: [[{ text: "🔙 رجوع", callback_data: "main_menu" }]] }
+                    }
+                );
+            });
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- الأسئلة الشائعة ---
+    else if (data === 'faq_section') {
+        let faqText = `❓ <b>الأسئلة الشائعة - fokhm.com:</b>\n\n`;
+        FAQ_DATA.forEach((item, i) => {
+            faqText += `<b>${i + 1}. ${item.question}</b>\n${item.answer}\n\n`;
+        });
+        bot.editMessageText(faqText, {
+            chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 رجوع", callback_data: "main_menu" }]] }
+        });
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
+    // --- معرفي ---
+    else if (data === 'my_id') {
+        bot.editMessageText(
+            `🆔 <b>معرفك:</b> <code>${userId}</code>`,
+            { 
+                chat_id: chatId, message_id: messageId, parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: [[{ text: "🔙 رجوع", callback_data: "main_menu" }]] }
+            }
+        );
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    
     // ==================== التبرع ====================
     else if (data === 'start_donation') {
         donationSessions[userId] = "5";
@@ -748,8 +1140,170 @@ bot.on('message', (msg) => {
                     parse_mode: 'HTML',
                     reply_markup: getAdminKeyboard()
                 });
-            }, 3000); // تأخير بسيط لإعطاء وقت للإرسال
+            }, 3000);
         });
+    }
+    
+    // --- استقبال طلب حظر مستخدم ---
+    else if (adminState[ADMIN_ID] === 'awaiting_ban_input') {
+        delete adminState[ADMIN_ID];
+        const rawText = msg.text || '';
+        const parts = rawText.trim().split(/\s+/);
+        const targetId = parseInt(parts[0]);
+        const reason = parts.slice(1).join(' ') || 'بدون سبب';
+        
+        if (isNaN(targetId)) {
+            bot.sendMessage(chatId, "❌ معرف غير صالح. أرسل رقم صحيح.", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        banUser(targetId, reason, ADMIN_ID, (err) => {
+            if (err) {
+                bot.sendMessage(chatId, "❌ حدث خطأ أثناء الحظر.", { reply_markup: getAdminUsersKeyboard() });
+            } else {
+                bot.sendMessage(chatId, `✅ تم حظر المستخدم <code>${targetId}</code>\nالسبب: ${reason}`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() });
+                bot.sendMessage(targetId, "⛔ تم حظرك من استخدام البوت. للاستفسار تواصل عبر fokhm.com").catch(() => {});
+            }
+        });
+    }
+    
+    // --- استقبال طلب رفع حظر ---
+    else if (adminState[ADMIN_ID] === 'awaiting_unban_input') {
+        delete adminState[ADMIN_ID];
+        const targetId = parseInt((msg.text || '').trim());
+        
+        if (isNaN(targetId)) {
+            bot.sendMessage(chatId, "❌ معرف غير صالح. أرسل رقم صحيح.", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        unbanUser(targetId, (err) => {
+            if (err) {
+                bot.sendMessage(chatId, "❌ حدث خطأ أثناء رفع الحظر.", { reply_markup: getAdminUsersKeyboard() });
+            } else {
+                bot.sendMessage(chatId, `✅ تم رفع الحظر عن المستخدم <code>${targetId}</code>`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() });
+                bot.sendMessage(targetId, "✅ تم رفع الحظر عنك. يمكنك استخدام البوت الآن.").catch(() => {});
+            }
+        });
+    }
+    
+    // --- استقبال طلب منح VIP ---
+    else if (adminState[ADMIN_ID] === 'awaiting_vip_add_input') {
+        delete adminState[ADMIN_ID];
+        const targetId = parseInt((msg.text || '').trim());
+        
+        if (isNaN(targetId)) {
+            bot.sendMessage(chatId, "❌ معرف غير صالح. أرسل رقم صحيح.", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        const expiryTime = Date.now() + (30 * 24 * 60 * 60 * 1000);
+        db.run("UPDATE users SET is_vip = 1, vip_expires_at = ? WHERE user_id = ?", [expiryTime, targetId], (err) => {
+            if (err) {
+                bot.sendMessage(chatId, "❌ حدث خطأ.", { reply_markup: getAdminUsersKeyboard() });
+            } else {
+                bot.sendMessage(chatId, `✅ تم منح VIP للمستخدم <code>${targetId}</code> لمدة 30 يوماً.`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() });
+                bot.sendMessage(targetId, "🎉 تم ترقيتك إلى VIP من قبل الإدارة! استمتع بالميزات الحصرية.").catch(() => {});
+            }
+        });
+    }
+    
+    // --- استقبال طلب إلغاء VIP ---
+    else if (adminState[ADMIN_ID] === 'awaiting_vip_remove_input') {
+        delete adminState[ADMIN_ID];
+        const targetId = parseInt((msg.text || '').trim());
+        
+        if (isNaN(targetId)) {
+            bot.sendMessage(chatId, "❌ معرف غير صالح. أرسل رقم صحيح.", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        db.run("UPDATE users SET is_vip = 0, vip_expires_at = 0 WHERE user_id = ?", [targetId], (err) => {
+            if (err) {
+                bot.sendMessage(chatId, "❌ حدث خطأ.", { reply_markup: getAdminUsersKeyboard() });
+            } else {
+                bot.sendMessage(chatId, `✅ تم إلغاء VIP للمستخدم <code>${targetId}</code>.`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() });
+            }
+        });
+    }
+    
+    // --- استقبال رسالة لمستخدم ---
+    else if (adminState[ADMIN_ID] === 'awaiting_msg_user_input') {
+        delete adminState[ADMIN_ID];
+        const rawText = msg.text || '';
+        const spaceIndex = rawText.indexOf(' ');
+        
+        if (spaceIndex === -1) {
+            bot.sendMessage(chatId, "❌ الصيغة غير صحيحة. أرسل: USER_ID النص", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        const targetId = parseInt(rawText.substring(0, spaceIndex));
+        const message = rawText.substring(spaceIndex + 1);
+        
+        if (isNaN(targetId)) {
+            bot.sendMessage(chatId, "❌ معرف غير صالح.", { reply_markup: getAdminUsersKeyboard() });
+            return;
+        }
+        
+        bot.sendMessage(targetId, `📨 <b>رسالة من الإدارة:</b>\n\n${message}`, { parse_mode: 'HTML' })
+            .then(() => bot.sendMessage(chatId, `✅ تم إرسال الرسالة إلى <code>${targetId}</code>`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() }))
+            .catch(() => bot.sendMessage(chatId, `❌ فشل إرسال الرسالة إلى <code>${targetId}</code>`, { parse_mode: 'HTML', reply_markup: getAdminUsersKeyboard() }));
+    }
+    
+    // --- استقبال إذاعة VIP ---
+    else if (adminState[ADMIN_ID] === 'awaiting_broadcast_vip') {
+        delete adminState[ADMIN_ID];
+        const broadcastText = processTextWithCustomEmojis(msg);
+        
+        broadcastToGroup({ vip_only: true }, `👑 <b>رسالة حصرية لأعضاء VIP:</b>\n\n${broadcastText}`, { parse_mode: 'HTML' })
+            .then((result) => {
+                bot.sendMessage(chatId, `✅ تم الإرسال لأعضاء VIP!\n📤 نجح: ${result.success}\n❌ فشل: ${result.failed}`, { reply_markup: getAdminKeyboard() });
+            });
+    }
+    
+    // --- استقبال استطلاع ---
+    else if (adminState[ADMIN_ID] === 'awaiting_poll_input') {
+        delete adminState[ADMIN_ID];
+        const rawText = msg.text || '';
+        const parts = rawText.split('|');
+        
+        if (parts.length < 3) {
+            bot.sendMessage(chatId, "❌ الصيغة غير صحيحة. استخدم: السؤال|خيار1|خيار2|خيار3", { reply_markup: getAdminBroadcastKeyboard() });
+            return;
+        }
+        
+        const question = parts[0].trim();
+        const options = parts.slice(1).map(o => o.trim());
+        
+        db.all("SELECT user_id FROM users LIMIT 100", [], async (err, rows) => {
+            if (!rows) return;
+            let sent = 0;
+            for (const row of rows) {
+                try {
+                    await bot.sendPoll(row.user_id, question, options, { is_anonymous: false });
+                    sent++;
+                    await new Promise(r => setTimeout(r, 100));
+                } catch (e) {}
+            }
+            bot.sendMessage(chatId, `✅ تم إرسال الاستطلاع إلى ${sent} مستخدم.`, { reply_markup: getAdminKeyboard() });
+        });
+    }
+    
+    // --- استقبال إنشاء كوبون ---
+    else if (adminState[ADMIN_ID] === 'awaiting_coupon_input') {
+        delete adminState[ADMIN_ID];
+        const rawText = msg.text || '';
+        const parts = rawText.trim().split(/\s+/);
+        
+        if (parts.length < 4) {
+            bot.sendMessage(chatId, "❌ الصيغة غير صحيحة. استخدم: الكود نسبة_الخصم عدد_الاستخدامات ساعات", { reply_markup: getAdminCouponsKeyboard() });
+            return;
+        }
+        
+        const [code, discount, maxUses, hours] = parts;
+        createCoupon(code, parseInt(discount), 0, parseInt(maxUses), parseInt(hours));
+        bot.sendMessage(chatId, `✅ تم إنشاء الكوبون: <b>${code.toUpperCase()}</b>\nالخصم: ${discount}%\nالاستخدامات: ${maxUses}\nينتهي بعد: ${hours} ساعة`, { parse_mode: 'HTML', reply_markup: getAdminCouponsKeyboard() });
     }
 });
 
