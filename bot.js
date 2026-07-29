@@ -22,7 +22,7 @@ const TOKEN = "8828318815:AAGCVNOOOJeS91OkcyW6zVFBYOYhLYjHbv4";
 const ADMIN_ID = 5653088167;
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
-const WEBAPP_URL = "https://fokhm.com";
+const WEBAPP_URL = "https://pywahm-3w5o.onrender.com";
 
 // تهيئة البوت
 const bot = new TelegramBot(TOKEN, { polling: true });
