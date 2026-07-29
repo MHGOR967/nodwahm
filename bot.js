@@ -149,7 +149,24 @@ const defaultConfig = {
     btn_support_general: "❓ استفسار عام",
     btn_my_tickets: "📋 تذاكري السابقة",
     btn_daily_reward: "🎁 المكافأة اليومية",
-    btn_main_menu: "🏠 القائمة الرئيسية"
+    btn_main_menu: "🏠 القائمة الرئيسية",
+    // === إيموجيات قابلة للتعديل (emoji_id = null يعني إيموجي عادي) ===
+    emoji_welcome: { char: "☠", id: null },
+    emoji_vip: { char: "👑", id: null },
+    emoji_account: { char: "📋", id: null },
+    emoji_invite: { char: "📨", id: null },
+    emoji_donate: { char: "⭐", id: null },
+    emoji_help: { char: "❓", id: null },
+    emoji_faq: { char: "❓", id: null },
+    emoji_back: { char: "🔙", id: null },
+    emoji_daily: { char: "🎁", id: null },
+    emoji_success: { char: "✅", id: null },
+    emoji_error: { char: "❌", id: null },
+    emoji_star: { char: "⭐", id: null },
+    emoji_fire: { char: "⚡", id: null },
+    emoji_ticket: { char: "📋", id: null },
+    emoji_tools: { char: "🔧", id: null },
+    emoji_payment: { char: "💳", id: null }
 };
 
 // تحميل الإعدادات
@@ -273,6 +290,7 @@ function getAdminSettingsKeyboard() {
         [{ text: "❓ تعديل FAQ", callback_data: "admin_edit_faq_menu" }],
         [{ text: "⚙️ الإعدادات", callback_data: "admin_dynamic_settings" }],
         [{ text: "✏️ تعديل نصوص البوت", callback_data: "admin_edit_texts_menu" }],
+        [{ text: "🎨 تعديل الإيموجيات", callback_data: "admin_edit_emojis_menu" }],
         [{ text: "�� رجوع", callback_data: "admin_panel" }]
     ]};
 }
@@ -316,6 +334,17 @@ function buildBtn(textKey, callbackData) {
     }
     return btn;
 }
+
+// عرض إيموجي (مميز أو عادي) في النصوص
+function renderEmoji(key) {
+    const emojiData = config[key] || defaultConfig[key] || { char: "⭐", id: null };
+    if (emojiData.id) {
+        return `<tg-emoji emoji-id="${emojiData.id}">${emojiData.char}</tg-emoji>`;
+    }
+    return emojiData.char;
+}
+
+
 
 
 
@@ -773,9 +802,46 @@ bot.on('callback_query', (callbackQuery) => {
         bot.editMessageText(`✏️ <b>تعديل النص:</b>\n\n<b>الحالي:</b>\n${preview}...\n\nأرسل النص الجديد (يدعم إيموجي مميزة متعددة):`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_edit_texts_menu" }]] } }).catch(() => {});
         bot.answerCallbackQuery(callbackQuery.id);
     }
+    // --- تعديل الإيموجيات ---
+    else if (data === 'admin_edit_emojis_menu' && userId === ADMIN_ID) {
+        const emojiKeys = [
+            { key: 'emoji_welcome', label: 'إيموجي الترحيب' },
+            { key: 'emoji_vip', label: 'إيموجي VIP' },
+            { key: 'emoji_account', label: 'إيموجي الحساب' },
+            { key: 'emoji_invite', label: 'إيموجي الدعوة' },
+            { key: 'emoji_donate', label: 'إيموجي التبرع' },
+            { key: 'emoji_help', label: 'إيموجي المساعدة' },
+            { key: 'emoji_faq', label: 'إيموجي FAQ' },
+            { key: 'emoji_back', label: 'إيموجي الرجوع' },
+            { key: 'emoji_daily', label: 'إيموجي المكافأة' },
+            { key: 'emoji_success', label: 'إيموجي النجاح' },
+            { key: 'emoji_error', label: 'إيموجي الخطأ' },
+            { key: 'emoji_star', label: 'إيموجي النجمة' },
+            { key: 'emoji_fire', label: 'إيموجي البرق' },
+            { key: 'emoji_ticket', label: 'إيموجي التذكرة' },
+            { key: 'emoji_tools', label: 'إيموجي الأدوات' },
+            { key: 'emoji_payment', label: 'إيموجي الدفع' }
+        ];
+        const btns = emojiKeys.map(e => {
+            const current = config[e.key] || defaultConfig[e.key] || { char: "⭐", id: null };
+            const display = current.id ? '🟢' : '⚪';
+            return [{ text: `${display} ${e.label} (${current.char})`, callback_data: `admin_edit_emoji_${e.key}` }];
+        });
+        btns.push([{ text: "🔙 رجوع", callback_data: "admin_cat_settings" }]);
+        bot.editMessageText("🎨 <b>تعديل الإيموجيات:</b>\n\n🟢 = إيموجي مميز مفعل\n⚪ = إيموجي عادي\n\nاختر الإيموجي لتعديله:", { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: btns } }).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    else if (data.startsWith('admin_edit_emoji_') && userId === ADMIN_ID) {
+        const emojiKey = data.replace('admin_edit_emoji_', '');
+        adminState[ADMIN_ID] = `awaiting_emoji_edit_${emojiKey}`;
+        const current = config[emojiKey] || defaultConfig[emojiKey] || { char: "⭐", id: null };
+        const statusText = current.id ? `مميز (ID: <code>${current.id}</code>)` : 'عادي';
+        bot.editMessageText(`🎨 <b>تعديل الإيموجي:</b>\n\nالحالي: ${current.char} (${statusText})\n\nأرسل إيموجي مميز جديد، أو أرسل "عادي" للرجوع للإيموجي العادي:`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_edit_emojis_menu" }]] } }).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
     else if (data === 'daily_reward') { claimDailyReward(userId, (result) => { safeEdit(chatId, messageId, `${config.daily_reward_header || defaultConfig.daily_reward_header}\n\n${result.message}`, {inline_keyboard:[[{text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu"}]]}); }); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([{text: config.btn_back || defaultConfig.btn_back, callback_data:"main_menu"}]); safeEdit(chatId, messageId, (config.faq_header_text || defaultConfig.faq_header_text), {inline_keyboard:btns}); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data.startsWith('faq_item_')) { const i2=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i2]){ safeEdit(chatId, messageId, `❓ <b>${FAQ_DATA[i2].question}</b>\n\n${FAQ_DATA[i2].answer}`, {inline_keyboard:[[{text: config.btn_faq || defaultConfig.btn_faq, callback_data:"faq_section"}],[{text: config.btn_main_menu || defaultConfig.btn_main_menu, callback_data:"main_menu"}]]}); } bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([buildBtn('btn_back', 'main_menu')]); safeEdit(chatId, messageId, (config.faq_header_text || defaultConfig.faq_header_text), {inline_keyboard:btns}); bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data.startsWith('faq_item_')) { const i2=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i2]){ safeEdit(chatId, messageId, `❓ <b>${FAQ_DATA[i2].question}</b>\n\n${FAQ_DATA[i2].answer}`, {inline_keyboard:[[buildBtn('btn_faq', 'faq_section')],[buildBtn('btn_main_menu', 'main_menu')]]}); } bot.answerCallbackQuery(callbackQuery.id); }
     
     // ==================== التبرع ====================
     else if (data === 'start_donation') {
@@ -1038,6 +1104,43 @@ bot.on('message', (msg) => {
     // --- FAQ إضافة ---
     else if (adminState[ADMIN_ID] === 'awaiting_faq_add') { delete adminState[ADMIN_ID]; const raw=processTextWithCustomEmojis(msg); const parts=raw.split('|'); if(parts.length<2){bot.sendMessage(chatId,"❌ الصيغة: السؤال|الإجابة",{reply_markup:getAdminSettingsKeyboard()});return;} FAQ_DATA.push({question:parts[0].trim(),answer:parts.slice(1).join('|').trim()}); saveFaqData(); bot.sendMessage(chatId,`✅ تمت الإضافة! العدد: ${FAQ_DATA.length}`,{reply_markup:getAdminSettingsKeyboard()}); }
     // --- تعديل نصوص البوت ---
+    // --- حفظ الإيموجي المعدل ---
+    else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_emoji_edit_')) {
+        const emojiKey = adminState[ADMIN_ID].replace('awaiting_emoji_edit_', '');
+        delete adminState[ADMIN_ID];
+        
+        const text = msg.text || '';
+        
+        if (text === 'عادي' || text === 'normal') {
+            // إرجاع الإيموجي العادي
+            const defaultEmoji = defaultConfig[emojiKey] || { char: "⭐", id: null };
+            config[emojiKey] = { char: defaultEmoji.char, id: null };
+            saveConfig();
+            bot.sendMessage(chatId, `✅ تم إرجاع الإيموجي إلى العادي: ${defaultEmoji.char}`, { reply_markup: getAdminSettingsKeyboard() });
+        } else {
+            // استخراج الإيموجي المميز
+            let emojiChar = text;
+            let emojiId = null;
+            
+            if (msg.entities) {
+                const customEntity = msg.entities.find(e => e.type === 'custom_emoji');
+                if (customEntity && customEntity.custom_emoji_id) {
+                    emojiId = customEntity.custom_emoji_id;
+                    emojiChar = text.substring(customEntity.offset, customEntity.offset + customEntity.length);
+                }
+            }
+            
+            config[emojiKey] = { char: emojiChar, id: emojiId };
+            saveConfig();
+            
+            if (emojiId) {
+                bot.sendMessage(chatId, `✅ تم تحديث الإيموجي بنجاح!\n<tg-emoji emoji-id="${emojiId}">${emojiChar}</tg-emoji>`, { parse_mode: 'HTML', reply_markup: getAdminSettingsKeyboard() });
+            } else {
+                bot.sendMessage(chatId, `✅ تم تحديث الإيموجي إلى: ${emojiChar}`, { reply_markup: getAdminSettingsKeyboard() });
+            }
+        }
+    }
+
     else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_text_edit_')) {
         const textKey = adminState[ADMIN_ID].replace('awaiting_text_edit_', '');
         delete adminState[ADMIN_ID];
