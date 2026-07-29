@@ -306,6 +306,18 @@ function safeEdit(chatId, messageId, text, replyMarkup) {
         });
     });
 }
+// بناء زر شفاف مع دعم الإيموجي المميز
+function buildBtn(textKey, callbackData) {
+    const text = config[textKey] || defaultConfig[textKey] || textKey;
+    const emojiId = config[textKey + '_emoji_id'] || null;
+    const btn = { text: text, callback_data: callbackData };
+    if (emojiId) {
+        btn.icon_custom_emoji_id = emojiId;
+    }
+    return btn;
+}
+
+
 
 
 // قائمة تعديل الأزرار بشكل منفصل
@@ -529,11 +541,11 @@ bot.on('callback_query', (callbackQuery) => {
         const helpTxt = config.help_text || defaultConfig.help_text;
         safeEdit(chatId, messageId, helpTxt, {
             inline_keyboard: [
-                [{ text: config.btn_support_technical || defaultConfig.btn_support_technical, callback_data: "support_technical" }],
-                [{ text: config.btn_support_payment || defaultConfig.btn_support_payment, callback_data: "support_payment" }],
-                [{ text: config.btn_support_general || defaultConfig.btn_support_general, callback_data: "support_general" }],
-                [{ text: config.btn_my_tickets || defaultConfig.btn_my_tickets, callback_data: "my_tickets" }],
-                [{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]
+                [buildBtn('btn_support_technical', 'support_technical')],
+                [buildBtn('btn_support_payment', 'support_payment')],
+                [buildBtn('btn_support_general', 'support_general')],
+                [buildBtn('btn_my_tickets', 'my_tickets')],
+                [buildBtn('btn_back', 'main_menu')]
             ]
         });
         bot.answerCallbackQuery(callbackQuery.id);
@@ -543,17 +555,14 @@ bot.on('callback_query', (callbackQuery) => {
         const types = { support_technical: '�� مشكلة تقنية', support_payment: '�� مشكلة دفع', support_general: '❓ استفسار عام' };
         if (!userSupportState) global.userSupportState = {};
         userSupportState[userId] = { type: data, step: 'awaiting_message' };
-        bot.editMessageText(
-            `�� <b>تذكرة جديدة - ${types[data]}</b>\n\nاكتب رسالتك وسيتم إرسالها للإدارة:`,
-            { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "help_section" }]] } }
-        ).catch(() => {});
+        safeEdit(chatId, messageId, `️️ <b>تذكرة جديدة - ${types[data]}</b>\n\nاكتب رسالتك وسيتم إرسالها للإدارة:`, { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "help_section" }]] });
         bot.answerCallbackQuery(callbackQuery.id);
     }
     // --- تذاكري السابقة ---
     else if (data === 'my_tickets') {
         db.all("SELECT id, subject, status, created_at FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC LIMIT 5", [userId], (err, rows) => {
             if (!rows || rows.length === 0) {
-                bot.editMessageText("�� <b>تذاكرك:</b>\n\nلا توجد تذاكر سابقة.", { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] } }).catch(() => {});
+                safeEdit(chatId, messageId, "�� <b>تذاكرك:</b>\n\nلا توجد تذاكر سابقة.", { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] });
             } else {
                 let text = "�� <b>تذاكرك:</b>\n\n";
                 rows.forEach(r => {
@@ -561,7 +570,7 @@ bot.on('callback_query', (callbackQuery) => {
                     const date = new Date(r.created_at).toLocaleDateString('ar-EG');
                     text += `#${r.id} | ${status} | ${r.subject}\n�� ${date}\n\n`;
                 });
-                bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] } }).catch(() => {});
+                safeEdit(chatId, messageId, text, { inline_keyboard: [[{ text: "�� رجوع", callback_data: "help_section" }]] });
             }
         });
         bot.answerCallbackQuery(callbackQuery.id);
@@ -921,9 +930,17 @@ bot.on('message', (msg) => {
                 }
             }
             
-            // إزالة التنسيقات والإيموجي العادي من النص ليكون نظيفاً للزر
-            let cleanText = rawText.replace(/<[^>]*>?/gm, '').trim();
-            // حذف الإيموجي العادي من نص الزر (نحتفظ فقط بالمميز عبر emoji_id)
+            // إزالة الإيموجي المميز من النص (سيتم ربطه عبر emoji_id بشكل منفصل)
+            let cleanText = rawText;
+            // إزالة حرف الإيموجي المميز من النص حتى لا يتكرر
+            if (msg.entities) {
+                const customEntities = msg.entities.filter(e => e.type === 'custom_emoji').sort((a, b) => b.offset - a.offset);
+                for (const ent of customEntities) {
+                    cleanText = cleanText.substring(0, ent.offset) + cleanText.substring(ent.offset + ent.length);
+                }
+            }
+            cleanText = cleanText.replace(/<[^>]*>?/gm, '').trim();
+            // حذف الإيموجي العادي المتبقي
             cleanText = cleanNormalEmojis(cleanText).trim();
             
             config.buttons[btnIndex].text = cleanText;
@@ -933,7 +950,12 @@ bot.on('message', (msg) => {
             delete adminState[ADMIN_ID];
             delete editButtonState[ADMIN_ID];
             
-            bot.sendMessage(chatId, `✅ تم تحديث الزر بنجاح إلى:\n<b>${cleanText}</b>\nوتم ربط الإيموجي بشكل سليم!`, { 
+            // عرض الإيموجي المميز في رسالة التأكيد
+            let confirmText = `✅ تم تحديث الزر بنجاح إلى:\n<b>${cleanText}</b>`;
+            if (assignedEmojiId) {
+                confirmText += `\n<tg-emoji emoji-id="${assignedEmojiId}">⭐</tg-emoji>`;
+            }
+            bot.sendMessage(chatId, confirmText, { 
                 parse_mode: 'HTML',
                 reply_markup: getButtonsEditMenu() 
             });
@@ -1019,7 +1041,25 @@ bot.on('message', (msg) => {
     else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_text_edit_')) {
         const textKey = adminState[ADMIN_ID].replace('awaiting_text_edit_', '');
         delete adminState[ADMIN_ID];
-        const newText = processTextWithCustomEmojis(msg);
+        let newText;
+        // إذا كان المفتاح زر (btn_) نحفظ النص بدون HTML ونحفظ الإيموجي المميز بشكل منفصل
+        if (textKey.startsWith('btn_')) {
+            let rawText = msg.text || msg.caption || '';
+            let assignedEmojiId = null;
+            if (msg.entities || msg.caption_entities) {
+                const entities = (msg.entities || msg.caption_entities);
+                const customEmojiEntity = entities.find(e => e.type === 'custom_emoji');
+                if (customEmojiEntity && customEmojiEntity.custom_emoji_id) {
+                    assignedEmojiId = customEmojiEntity.custom_emoji_id;
+                    // إزالة حرف الإيموجي المميز من النص
+                    rawText = rawText.substring(0, customEmojiEntity.offset) + rawText.substring(customEmojiEntity.offset + customEmojiEntity.length);
+                }
+            }
+            newText = rawText.trim();
+            config[textKey + '_emoji_id'] = assignedEmojiId;
+        } else {
+            newText = processTextWithCustomEmojis(msg);
+        }
         config[textKey] = newText;
         // حفظ الصورة إذا أرسلت مع النص
         if (msg.photo && (textKey === 'welcome_message')) {
