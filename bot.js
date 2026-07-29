@@ -125,7 +125,31 @@ const defaultConfig = {
         "• أولوية في الدعم الفني\n" +
         "• توقيع تطبيقات بدون قيود\n\n" +
         "💎 <b>السعر:</b> 270 نجمة (عرض مؤقت لمدة 48 ساعة فقط!)"
-    )
+    ),
+    // === نصوص قابلة للتعديل ===
+    donation_text: "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\nاختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:",
+    invite_text: "📨 <b>نظام الدعوات والأرباح الماسي:</b>\n\nشارك رابط الدعوة الخاص بك مع أصدقائك للحصول على مكافآت وترقيات مجانية!",
+    account_header_text: "📋 <b>معلومات حسابك:</b>",
+    help_text: "❓ <b>الدعم الفني:</b>\n\nاختر نوع المساعدة:",
+    faq_header_text: "❓ <b>الأسئلة الشائعة:</b>\nاختر سؤالك:",
+    vip_purchase_text: "✅ <b>جاري تجهيز فاتورة شراء VIP!</b>\n\nتتم عملية الدفع بقيمة <b>{amount}</b> نجمة (Telegram Stars).\nالمدة: 30 يوماً.",
+    daily_reward_header: "🎁 <b>المكافأة اليومية:</b>",
+    banned_text: "⛔ <b>أنت محظور من استخدام البوت.</b>\nالسبب: {reason}\nللاستفسار: fokhm.com",
+    donation_success_text: "🎉 <b>تم استلام تبرعك بـ {amount} نجمة بنجاح يا فخم!</b>\nشكراً لدعمك المستمر لمنصة fokhm.com ⚡",
+    vip_success_text: "🎉 <b>مبروك يا فخم!</b>\n\n👑 تم ترقية حسابك إلى رتبة (VIP) بنجاح لمدة 30 يوماً.\nاستمتع بالميزات الحصرية الآن ⚡",
+    support_ticket_sent: "✅ <b>تم إرسال تذكرتك!</b>\n\n📌 رقم التذكرة: #{ticket_id}\n📂 النوع: {subject}\n\nسيتم الرد عليك قريباً.",
+    help_command_text: "❓ <b>مركز المساعدة - fokhm.com</b>\n\n<b>الأوامر المتاحة:</b>\n/start - القائمة الرئيسية\n/help - هذه الرسالة\n\n<b>للدعم الفني:</b>\n🌐 fokhm.com\n\n<b>البوت يوفر:</b>\n• تلغيم وتخصيص التطبيقات\n• نظام VIP حصري\n• نظام الدعوات والمكافآت",
+    // === أسماء أزرار قابلة للتعديل ===
+    btn_back: "🔙 رجوع",
+    btn_cancel: "❌ إلغاء",
+    btn_faq: "❓ الأسئلة الشائعة",
+    btn_buy_vip: "💳 شراء VIP الآن (270 ⭐)",
+    btn_support_technical: "🔧 مشكلة تقنية",
+    btn_support_payment: "💳 مشكلة دفع",
+    btn_support_general: "❓ استفسار عام",
+    btn_my_tickets: "📋 تذاكري السابقة",
+    btn_daily_reward: "🎁 المكافأة اليومية",
+    btn_main_menu: "🏠 القائمة الرئيسية"
 };
 
 // تحميل الإعدادات
@@ -176,7 +200,7 @@ function getMainKeyboard() {
             [getKey(1, "معلومات حسابي", "my_account"), getKey(2, "دعوة صديق (ربح)", "invite_friends")],
             [getKey(3, "قسم VIP 👑", "vip_section"), getKey(4, "مساعدة", "help_section")],
             [getKey(5, "تبرع للبوت", "start_donation")],
-            [{ text: "❓ الأسئلة الشائعة", callback_data: "faq_section" }]
+            [{ text: config.btn_faq || defaultConfig.btn_faq, callback_data: "faq_section" }]
         ]
     };
 }
@@ -219,7 +243,7 @@ function getAdminKeyboard() {
             [{ text: "�� إدارة المستخدمين", callback_data: "admin_cat_users" }, { text: "�� الإذاعة", callback_data: "admin_cat_broadcast" }],
             [{ text: "⚙️ إعدادات البوت", callback_data: "admin_cat_settings" }, { text: "�� النظام", callback_data: "admin_cat_system" }],
             [{ text: "�� الكوبونات", callback_data: "admin_cat_coupons" }, { text: "�� الإحصائيات", callback_data: "admin_cat_stats" }],
-            [{ text: "�� القائمة الرئيسية", callback_data: "admin_home" }]
+            [{ text: config.btn_main_menu || defaultConfig.btn_main_menu, callback_data: "admin_home" }]
         ]
     };
 }
@@ -301,8 +325,8 @@ function getButtonsEditMenu() {
 function getVipPurchaseKeyboard() {
     return {
         inline_keyboard: [
-            [{ text: "💳 شراء VIP الآن (270 ⭐)", callback_data: "buy_vip" }],
-            [{ text: "🔙 رجوع", callback_data: "main_menu" }]
+            [{ text: config.btn_buy_vip || defaultConfig.btn_buy_vip, callback_data: "buy_vip" }],
+            [{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]
         ]
     };
 }
@@ -425,7 +449,7 @@ bot.on('callback_query', (callbackQuery) => {
                 let vipExpiryText = "";
                 if (userId === ADMIN_ID) { vipStatus = "�� الآدمن الرئيسي"; }
                 else if (stats.vip) { vipStatus = "�� عضو VIP"; if (stats.vip_expires_at > 0) { const expiryDate = new Date(stats.vip_expires_at).toLocaleString('ar-EG'); vipExpiryText = `\n⏳ ينتهي: <b>${expiryDate}</b>`; } }
-                const accountText = `�� <b>معلومات حسابك:</b>\n\n` +
+                const accountText = `${config.account_header_text || defaultConfig.account_header_text}\n\n` +
                     `�� المعرّف: <code>${userId}</code>\n` +
                     `⚡ الرتبة: ${vipStatus}${vipExpiryText}\n` +
                     `�� المستوى: ${levelName} (${pointsData.level})\n` +
@@ -433,7 +457,7 @@ bot.on('callback_query', (callbackQuery) => {
                     `�� الدعوات: <b>${stats.referrals}</b>\n` +
                     `⭐ التبرعات: <b>${stats.stars}</b> نجمة\n` +
                     `�� المنصة: <b>fokhm.com</b>`;
-                safeEdit(chatId, messageId, accountText, { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] });
+                safeEdit(chatId, messageId, accountText, { inline_keyboard: [[{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]] });
             });
         });
         bot.answerCallbackQuery(callbackQuery.id);
@@ -443,10 +467,10 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
             const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
-            const inviteText = `�� <b>نظام الدعوات والأرباح الماسي:</b>\n\n` +
-                `شارك رابط الدعوة الخاص بك مع أصدقائك للحصول على مكافآت وترقيات مجانية!\n\n` +
-                `<code>${inviteLink}</code>`;
-            safeEdit(chatId, messageId, inviteText, { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] });
+            const inviteText = `${config.invite_text || defaultConfig.invite_text}\n\n<code>${inviteLink}</code>`;
+
+
+            safeEdit(chatId, messageId, inviteText, { inline_keyboard: [[{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]] });
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -484,16 +508,9 @@ bot.on('callback_query', (callbackQuery) => {
     // --- شراء VIP ---
     else if (data === 'buy_vip') {
         const amount = 270;
-        bot.editMessageText(
-            `✅ <b>جاري تجهيز فاتورة شراء VIP!</b>\n\n` +
-            `تتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).\n` +
-            `المدة: 30 يوماً.`, 
-            {
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML'
-            }
-        );
+        const vpText = (config.vip_purchase_text || defaultConfig.vip_purchase_text).replace(/{amount}/g, amount);
+        safeEdit(chatId, messageId, vpText, { inline_keyboard: [] });
+
 
         bot.sendInvoice(
             chatId,
@@ -509,36 +526,15 @@ bot.on('callback_query', (callbackQuery) => {
     
     // --- مساعدة (نظام تذاكر الدعم) ---
     else if (data === 'help_section') {
-        bot.editMessageText(
-            `❓ <b>الدعم الفني:</b>\n\nاختر نوع المساعدة:`,
-            {
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "�� مشكلة تقنية", callback_data: "support_technical" }],
-                        [{ text: "�� مشكلة دفع", callback_data: "support_payment" }],
-                        [{ text: "❓ استفسار عام", callback_data: "support_general" }],
-                        [{ text: "�� تذاكري السابقة", callback_data: "my_tickets" }],
-                        [{ text: "�� رجوع", callback_data: "main_menu" }]
-                    ]
-                }
-            }
-        ).catch(() => {
-            bot.deleteMessage(chatId, messageId).catch(() => {});
-            bot.sendMessage(chatId, `❓ <b>الدعم الفني:</b>\n\nاختر نوع المساعدة:`, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "�� مشكلة تقنية", callback_data: "support_technical" }],
-                        [{ text: "�� مشكلة دفع", callback_data: "support_payment" }],
-                        [{ text: "❓ استفسار عام", callback_data: "support_general" }],
-                        [{ text: "�� تذاكري السابقة", callback_data: "my_tickets" }],
-                        [{ text: "�� رجوع", callback_data: "main_menu" }]
-                    ]
-                }
-            });
+        const helpTxt = config.help_text || defaultConfig.help_text;
+        safeEdit(chatId, messageId, helpTxt, {
+            inline_keyboard: [
+                [{ text: config.btn_support_technical || defaultConfig.btn_support_technical, callback_data: "support_technical" }],
+                [{ text: config.btn_support_payment || defaultConfig.btn_support_payment, callback_data: "support_payment" }],
+                [{ text: config.btn_support_general || defaultConfig.btn_support_general, callback_data: "support_general" }],
+                [{ text: config.btn_my_tickets || defaultConfig.btn_my_tickets, callback_data: "my_tickets" }],
+                [{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]
+            ]
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -729,13 +725,32 @@ bot.on('callback_query', (callbackQuery) => {
         // --- تعديل نصوص البوت ---
     else if (data === 'admin_edit_texts_menu' && userId === ADMIN_ID) {
         const textKeys = [
-            { key: 'welcome_message', label: '�� رسالة الترحيب' },
-            { key: 'vip_info', label: '�� نص VIP' },
-            { key: 'account_text', label: '�� نص الحساب' },
-            { key: 'invite_text', label: '�� نص الدعوة' },
-            { key: 'donate_text', label: '⭐ نص التبرع' },
-            { key: 'help_text', label: '❓ نص المساعدة' }
+            { key: 'welcome_message', label: '📝 رسالة الترحيب' },
+            { key: 'vip_info', label: '👑 نص قسم VIP' },
+            { key: 'donation_text', label: '⭐ نص صفحة التبرع' },
+            { key: 'invite_text', label: '📨 نص صفحة الدعوة' },
+            { key: 'account_header_text', label: '📋 عنوان صفحة الحساب' },
+            { key: 'help_text', label: '❓ نص صفحة المساعدة' },
+            { key: 'faq_header_text', label: '❓ عنوان الأسئلة الشائعة' },
+            { key: 'vip_purchase_text', label: '💳 نص تأكيد شراء VIP' },
+            { key: 'daily_reward_header', label: '🎁 عنوان المكافأة اليومية' },
+            { key: 'banned_text', label: '⛔ نص الحظر' },
+            { key: 'donation_success_text', label: '🎉 نص نجاح التبرع' },
+            { key: 'vip_success_text', label: '🎉 نص نجاح شراء VIP' },
+            { key: 'support_ticket_sent', label: '✅ نص إرسال التذكرة' },
+            { key: 'help_command_text', label: '❓ نص أمر المساعدة' },
+            { key: 'btn_back', label: '🔙 زر الرجوع' },
+            { key: 'btn_cancel', label: '❌ زر الإلغاء' },
+            { key: 'btn_faq', label: '❓ زر الأسئلة الشائعة' },
+            { key: 'btn_buy_vip', label: '💳 زر شراء VIP' },
+            { key: 'btn_support_technical', label: '🔧 زر مشكلة تقنية' },
+            { key: 'btn_support_payment', label: '💳 زر مشكلة دفع' },
+            { key: 'btn_support_general', label: '❓ زر استفسار عام' },
+            { key: 'btn_my_tickets', label: '📋 زر تذاكري السابقة' },
+            { key: 'btn_daily_reward', label: '🎁 زر المكافأة اليومية' },
+            { key: 'btn_main_menu', label: '🏠 زر القائمة الرئيسية' }
         ];
+
         const btns = textKeys.map(t => [{ text: t.label, callback_data: `admin_edit_text_${t.key}` }]);
         btns.push([{ text: "�� رجوع", callback_data: "admin_cat_settings" }]);
         bot.editMessageText("✏️ <b>تعديل نصوص البوت:</b>\nاختر النص المراد تعديله:", { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: btns } }).catch(() => {});
@@ -749,19 +764,15 @@ bot.on('callback_query', (callbackQuery) => {
         bot.editMessageText(`✏️ <b>تعديل النص:</b>\n\n<b>الحالي:</b>\n${preview}...\n\nأرسل النص الجديد (يدعم إيموجي مميزة متعددة):`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_edit_texts_menu" }]] } }).catch(() => {});
         bot.answerCallbackQuery(callbackQuery.id);
     }
-    else if (data === 'daily_reward') { claimDailyReward(userId,(result)=>{bot.editMessageText(`�� <b>المكافأة اليومية:</b>\n\n${result.message}`,{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� رجوع",callback_data:"main_menu"}]]}});}); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([{text:"�� رجوع",callback_data:"main_menu"}]); bot.editMessageText("❓ <b>الأسئلة الشائعة:</b>\nاختر سؤالك:",{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:btns}}).catch(() => { bot.deleteMessage(chatId, messageId).catch(() => {}); const btns2=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns2.push([{text:"�� رجوع",callback_data:"main_menu"}]); bot.sendMessage(chatId,"❓ <b>الأسئلة الشائعة:</b>\\nاختر سؤالك:",{parse_mode:'HTML',reply_markup:{inline_keyboard:btns2}}); }); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data.startsWith('faq_item_')) { const i2=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i2]){bot.editMessageText(`❓ <b>${FAQ_DATA[i2].question}</b>\n\n${FAQ_DATA[i2].answer}`,{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� الأسئلة",callback_data:"faq_section"}],[{text:"�� الرئيسية",callback_data:"main_menu"}]]}}).catch(() => { bot.deleteMessage(chatId, messageId).catch(() => {}); bot.sendMessage(chatId,`❓ <b>${FAQ_DATA[i2].question}</b>\\n\\n${FAQ_DATA[i2].answer}`,{parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� الأسئلة",callback_data:"faq_section"}],[{text:"�� الرئيسية",callback_data:"main_menu"}]]}}); });} bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data === 'daily_reward') { claimDailyReward(userId, (result) => { safeEdit(chatId, messageId, `${config.daily_reward_header || defaultConfig.daily_reward_header}\n\n${result.message}`, {inline_keyboard:[[{text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu"}]]}); }); bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([{text: config.btn_back || defaultConfig.btn_back, callback_data:"main_menu"}]); safeEdit(chatId, messageId, (config.faq_header_text || defaultConfig.faq_header_text), {inline_keyboard:btns}); bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data.startsWith('faq_item_')) { const i2=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i2]){ safeEdit(chatId, messageId, `❓ <b>${FAQ_DATA[i2].question}</b>\n\n${FAQ_DATA[i2].answer}`, {inline_keyboard:[[{text: config.btn_faq || defaultConfig.btn_faq, callback_data:"faq_section"}],[{text: config.btn_main_menu || defaultConfig.btn_main_menu, callback_data:"main_menu"}]]}); } bot.answerCallbackQuery(callbackQuery.id); }
     
     // ==================== التبرع ====================
     else if (data === 'start_donation') {
         donationSessions[userId] = "5";
-        bot.editMessageText(
-            "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\n" +
-            "اختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:\n\n" +
-            "📌 <b>الكمية المحددة حالياً:</b> <code>5</code> نجوم",
-            { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getNumberPad("5") }
-        );
+        const donText = (config.donation_text || defaultConfig.donation_text) + "\n\n📌 <b>الكمية المحددة حالياً:</b> <code>5</code> نجوم";
+        safeEdit(chatId, messageId, donText, getNumberPad("5"));
         bot.answerCallbackQuery(callbackQuery.id);
     }
     
@@ -777,8 +788,7 @@ bot.on('callback_query', (callbackQuery) => {
             current = "0";
         } else if (action === 'cancel') {
             delete donationSessions[userId];
-            bot.editMessageText("❌ تم إلغاء عملية التبرع.", { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: [] } });
-            bot.sendMessage(chatId, "القائمة الرئيسية:", { reply_markup: getMainKeyboard() });
+            safeEdit(chatId, messageId, "❌ تم إلغاء عملية التبرع.", { inline_keyboard: [[{ text: config.btn_main_menu || defaultConfig.btn_main_menu, callback_data: "main_menu" }]] });
             bot.answerCallbackQuery(callbackQuery.id);
             return;
         } else if (action === 'confirm') {
@@ -789,11 +799,7 @@ bot.on('callback_query', (callbackQuery) => {
             }
             
             delete donationSessions[userId];
-            bot.editMessageText(`✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, {
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML'
-            });
+            safeEdit(chatId, messageId, `✅ <b>تم توليد فاتورة التبرع بنجاح يا فخم!</b>\n\nتتم عملية الدفع بقيمة <b>${amount}</b> نجمة (Telegram Stars).`, { inline_keyboard: [] });
 
             bot.sendInvoice(
                 chatId,
@@ -809,12 +815,8 @@ bot.on('callback_query', (callbackQuery) => {
         }
 
         donationSessions[userId] = current;
-        bot.editMessageText(
-            "⭐ <b>نظام الدعم والتبرع بالنجوم لمنصة fokhm.com</b>\n\n" +
-            "اختر عدد النجوم عبر لوحة الأرقام أدناه، ثم اضغط زر التأكيد:\n\n" +
-            `📌 <b>الكمية المحددة حالياً:</b> <code>${current}</code> نجوم`,
-            { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: getNumberPad(current) }
-        ).catch(() => {});
+        const donUpdText = (config.donation_text || defaultConfig.donation_text) + `\n\n📌 <b>الكمية المحددة حالياً:</b> <code>${current}</code> نجوم`;
+        safeEdit(chatId, messageId, donUpdText, getNumberPad(current));
         bot.answerCallbackQuery(callbackQuery.id);
     }
 });
@@ -953,7 +955,7 @@ bot.on('message', (msg) => {
         
         openSupportTicket(userId, subject, userMessage, (err, ticketId) => {
             if (err) { bot.sendMessage(chatId, "❌ حدث خطأ."); return; }
-            bot.sendMessage(chatId, `✅ <b>تم إرسال تذكرتك!</b>\n\n�� رقم التذكرة: #${ticketId}\n�� النوع: ${subject}\n\nسيتم الرد عليك قريباً.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] } });
+            bot.sendMessage(chatId, `✅ <b>تم إرسال تذكرتك!</b>\n\n�� رقم التذكرة: #${ticketId}\n�� النوع: ${subject}\n\nسيتم الرد عليك قريباً.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]] } });
             // إشعار الأدمن
             bot.sendMessage(ADMIN_ID, `�� <b>تذكرة دعم جديدة #${ticketId}</b>\n\n�� المستخدم: <code>${userId}</code>\n�� النوع: ${subject}\n�� الرسالة:\n${userMessage}`, {
                 parse_mode: 'HTML',
@@ -1039,7 +1041,7 @@ bot.on('message', (msg) => {
         // جلب معرف المستخدم من التذكرة وإرسال الرد له
         db.get("SELECT user_id FROM support_tickets WHERE id = ?", [ticketId], (err, row) => {
             if (!row) { bot.sendMessage(chatId, "❌ تذكرة غير موجودة.", { reply_markup: getAdminKeyboard() }); return; }
-            bot.sendMessage(row.user_id, `�� <b>رد من الإدارة على تذكرتك #${ticketId}:</b>\n\n${replyText}`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] } }).then(() => {
+            bot.sendMessage(row.user_id, `�� <b>رد من الإدارة على تذكرتك #${ticketId}:</b>\n\n${replyText}`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: config.btn_back || defaultConfig.btn_back, callback_data: "main_menu" }]] } }).then(() => {
                 bot.sendMessage(chatId, `✅ تم إرسال الرد للمستخدم <code>${row.user_id}</code>`, { parse_mode: 'HTML', reply_markup: getAdminKeyboard() });
             }).catch(() => {
                 bot.sendMessage(chatId, "❌ فشل الإرسال (المستخدم ربما حظر البوت).", { reply_markup: getAdminKeyboard() });
@@ -2400,7 +2402,7 @@ bot.onText(/\/faq/, (msg) => {
     bot.sendMessage(msg.chat.id, faqText, { 
         parse_mode: 'HTML',
         reply_markup: {
-            inline_keyboard: [[{ text: "🔙 القائمة الرئيسية", callback_data: "main_menu" }]]
+            inline_keyboard: [[{ text: config.btn_main_menu || defaultConfig.btn_main_menu, callback_data: "main_menu" }]]
         }
     });
 });
