@@ -507,7 +507,7 @@ bot.on('callback_query', (callbackQuery) => {
     // --- دعوة صديق ---
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
-            const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
+            const inviteLink = `https://t.me/g5wbot/wahmapk?startapp=ref_${userId}`;
             const inviteText = `${config.invite_text || defaultConfig.invite_text}\n\n<code>${inviteLink}</code>`;
 
 
