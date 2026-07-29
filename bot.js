@@ -248,6 +248,7 @@ function getAdminSettingsKeyboard() {
         [{ text: "�� تعديل VIP", callback_data: "admin_edit_vip" }],
         [{ text: "❓ تعديل FAQ", callback_data: "admin_edit_faq_menu" }],
         [{ text: "⚙️ الإعدادات", callback_data: "admin_dynamic_settings" }],
+        [{ text: "✏️ تعديل نصوص البوت", callback_data: "admin_edit_texts_menu" }],
         [{ text: "�� رجوع", callback_data: "admin_panel" }]
     ]};
 }
@@ -272,13 +273,12 @@ function getAdminStatsKeyboard() {
         [{ text: "�� رجوع", callback_data: "admin_panel" }]
     ]};
 }
-// دالة مساعدة لتعديل أو إرسال رسالة (تتعامل مع الصور)
-function safeEditOrSend(chatId, messageId, text, options = {}) {
-    const opts = { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', ...options };
-    return bot.editMessageText(text, opts).catch(() => {
-        // إذا فشل التعديل (ربما رسالة صورة) نحذف ونرسل جديد
-        return bot.deleteMessage(chatId, messageId).catch(() => {}).then(() => {
-            return bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: options.reply_markup });
+// دالة مساعدة لتعديل أو إرسال رسالة (تتعامل مع الصور تلقائياً)
+function safeEdit(chatId, messageId, text, replyMarkup) {
+    bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: replyMarkup }).catch(() => {
+        bot.editMessageCaption(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: replyMarkup }).catch(() => {
+            bot.deleteMessage(chatId, messageId).catch(() => {});
+            bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: replyMarkup });
         });
     });
 }
@@ -425,17 +425,15 @@ bot.on('callback_query', (callbackQuery) => {
                 let vipExpiryText = "";
                 if (userId === ADMIN_ID) { vipStatus = "�� الآدمن الرئيسي"; }
                 else if (stats.vip) { vipStatus = "�� عضو VIP"; if (stats.vip_expires_at > 0) { const expiryDate = new Date(stats.vip_expires_at).toLocaleString('ar-EG'); vipExpiryText = `\n⏳ ينتهي: <b>${expiryDate}</b>`; } }
-                bot.editMessageText(
-                    `�� <b>معلومات حسابك:</b>\n\n` +
+                const accountText = `�� <b>معلومات حسابك:</b>\n\n` +
                     `�� المعرّف: <code>${userId}</code>\n` +
                     `⚡ الرتبة: ${vipStatus}${vipExpiryText}\n` +
                     `�� المستوى: ${levelName} (${pointsData.level})\n` +
                     `⚡ النقاط: <b>${pointsData.points}</b>\n` +
                     `�� الدعوات: <b>${stats.referrals}</b>\n` +
                     `⭐ التبرعات: <b>${stats.stars}</b> نجمة\n` +
-                    `�� المنصة: <b>fokhm.com</b>`,
-                    { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] } }
-                );
+                    `�� المنصة: <b>fokhm.com</b>`;
+                safeEdit(chatId, messageId, accountText, { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] });
             });
         });
         bot.answerCallbackQuery(callbackQuery.id);
@@ -445,19 +443,10 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data === 'invite_friends') {
         bot.getMe().then((botInfo) => {
             const inviteLink = `https://t.me/${botInfo.username}?start=ref_${userId}`;
-            bot.editMessageText(
-                `🔗 <b>نظام الدعوات والأرباح الماسي:</b>\n\n` +
+            const inviteText = `�� <b>نظام الدعوات والأرباح الماسي:</b>\n\n` +
                 `شارك رابط الدعوة الخاص بك مع أصدقائك للحصول على مكافآت وترقيات مجانية!\n\n` +
-                `<code>${inviteLink}</code>`, 
-                { 
-                    chat_id: chatId,
-                    message_id: messageId,
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [[{ text: "🔙 رجوع", callback_data: "main_menu" }]]
-                    }
-                }
-            );
+                `<code>${inviteLink}</code>`;
+            safeEdit(chatId, messageId, inviteText, { inline_keyboard: [[{ text: "�� رجوع", callback_data: "main_menu" }]] });
         });
         bot.answerCallbackQuery(callbackQuery.id);
     }
@@ -481,8 +470,12 @@ bot.on('callback_query', (callbackQuery) => {
                 startVipTimer(userId, chatId, sentMsg.message_id);
             });
         } else {
-            bot.editMessageText(vipText, options).then(() => {
-                startVipTimer(userId, chatId, messageId);
+            bot.editMessageText(vipText, options).catch(() => {
+                bot.deleteMessage(chatId, messageId).catch(() => {});
+                return bot.sendMessage(chatId, vipText, { parse_mode: 'HTML', reply_markup: getVipPurchaseKeyboard() });
+            }).then((sentMsg) => {
+                const mid = sentMsg ? sentMsg.message_id : messageId;
+                startVipTimer(userId, chatId, mid);
             });
         }
         bot.answerCallbackQuery(callbackQuery.id);
@@ -733,9 +726,32 @@ bot.on('callback_query', (callbackQuery) => {
     else if (data.startsWith('admin_delete_faq_') && userId === ADMIN_ID) { const i=parseInt(data.replace('admin_delete_faq_','')); if(FAQ_DATA[i]){FAQ_DATA.splice(i,1);saveFaqData();} bot.editMessageText("✅ تم الحذف!",{chat_id:chatId,message_id:messageId,reply_markup:getAdminSettingsKeyboard()}); bot.answerCallbackQuery(callbackQuery.id); }
     else if (data === 'admin_add_faq' && userId === ADMIN_ID) { adminState[ADMIN_ID]='awaiting_faq_add'; bot.editMessageText("➕ <b>سؤال جديد:</b>\nأرسل: <code>السؤال|الإجابة</code>\nيمكنك إضافة إيموجي مميزة!",{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"❌ إلغاء",callback_data:"admin_edit_faq_menu"}]]}}); bot.answerCallbackQuery(callbackQuery.id); }
     // أزرار المستخدمين
+        // --- تعديل نصوص البوت ---
+    else if (data === 'admin_edit_texts_menu' && userId === ADMIN_ID) {
+        const textKeys = [
+            { key: 'welcome_message', label: '�� رسالة الترحيب' },
+            { key: 'vip_info', label: '�� نص VIP' },
+            { key: 'account_text', label: '�� نص الحساب' },
+            { key: 'invite_text', label: '�� نص الدعوة' },
+            { key: 'donate_text', label: '⭐ نص التبرع' },
+            { key: 'help_text', label: '❓ نص المساعدة' }
+        ];
+        const btns = textKeys.map(t => [{ text: t.label, callback_data: `admin_edit_text_${t.key}` }]);
+        btns.push([{ text: "�� رجوع", callback_data: "admin_cat_settings" }]);
+        bot.editMessageText("✏️ <b>تعديل نصوص البوت:</b>\nاختر النص المراد تعديله:", { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: btns } }).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
+    else if (data.startsWith('admin_edit_text_') && userId === ADMIN_ID) {
+        const textKey = data.replace('admin_edit_text_', '');
+        adminState[ADMIN_ID] = `awaiting_text_edit_${textKey}`;
+        const currentVal = config[textKey] || 'لم يتم تعيينه بعد';
+        const preview = currentVal.substring(0, 200);
+        bot.editMessageText(`✏️ <b>تعديل النص:</b>\n\n<b>الحالي:</b>\n${preview}...\n\nأرسل النص الجديد (يدعم إيموجي مميزة متعددة):`, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "❌ إلغاء", callback_data: "admin_edit_texts_menu" }]] } }).catch(() => {});
+        bot.answerCallbackQuery(callbackQuery.id);
+    }
     else if (data === 'daily_reward') { claimDailyReward(userId,(result)=>{bot.editMessageText(`�� <b>المكافأة اليومية:</b>\n\n${result.message}`,{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� رجوع",callback_data:"main_menu"}]]}});}); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([{text:"�� رجوع",callback_data:"main_menu"}]); bot.editMessageText("❓ <b>الأسئلة الشائعة:</b>\nاختر سؤالك:",{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:btns}}); bot.answerCallbackQuery(callbackQuery.id); }
-    else if (data.startsWith('faq_item_')) { const i=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i]){bot.editMessageText(`❓ <b>${FAQ_DATA[i].question}</b>\n\n${FAQ_DATA[i].answer}`,{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� الأسئلة",callback_data:"faq_section"}],[{text:"�� الرئيسية",callback_data:"main_menu"}]]}});} bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data === 'faq_section') { const btns=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns.push([{text:"�� رجوع",callback_data:"main_menu"}]); bot.editMessageText("❓ <b>الأسئلة الشائعة:</b>\nاختر سؤالك:",{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:btns}}).catch(() => { bot.deleteMessage(chatId, messageId).catch(() => {}); const btns2=FAQ_DATA.map((item,i)=>[{text:item.question,callback_data:`faq_item_${i}`}]); btns2.push([{text:"�� رجوع",callback_data:"main_menu"}]); bot.sendMessage(chatId,"❓ <b>الأسئلة الشائعة:</b>\\nاختر سؤالك:",{parse_mode:'HTML',reply_markup:{inline_keyboard:btns2}}); }); bot.answerCallbackQuery(callbackQuery.id); }
+    else if (data.startsWith('faq_item_')) { const i2=parseInt(data.replace('faq_item_','')); if(FAQ_DATA[i2]){bot.editMessageText(`❓ <b>${FAQ_DATA[i2].question}</b>\n\n${FAQ_DATA[i2].answer}`,{chat_id:chatId,message_id:messageId,parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� الأسئلة",callback_data:"faq_section"}],[{text:"�� الرئيسية",callback_data:"main_menu"}]]}}).catch(() => { bot.deleteMessage(chatId, messageId).catch(() => {}); bot.sendMessage(chatId,`❓ <b>${FAQ_DATA[i2].question}</b>\\n\\n${FAQ_DATA[i2].answer}`,{parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:"�� الأسئلة",callback_data:"faq_section"}],[{text:"�� الرئيسية",callback_data:"main_menu"}]]}}); });} bot.answerCallbackQuery(callbackQuery.id); }
     
     // ==================== التبرع ====================
     else if (data === 'start_donation') {
@@ -816,24 +832,14 @@ function processTextWithCustomEmojis(msg) {
             .filter(e => e.type === 'custom_emoji')
             .sort((a, b) => a.offset - b.offset);
         
-        const addedEmojiIds = new Set();
-        
         for (const entity of entities) {
             const emojiId = entity.custom_emoji_id;
-            
-            if (addedEmojiIds.has(emojiId)) {
-                const before = text.substring(lastIndex, entity.offset);
-                newText += cleanNormalEmojis(before);
-                lastIndex = entity.offset + entity.length;
-                continue;
-            }
             
             const before = text.substring(lastIndex, entity.offset);
             newText += cleanNormalEmojis(before);
             
             const emojiChar = text.substring(entity.offset, entity.offset + entity.length) || '⭐';
             newText += `<tg-emoji emoji-id="${emojiId}">${emojiChar}</tg-emoji>`;
-            addedEmojiIds.add(emojiId);
             lastIndex = entity.offset + entity.length;
         }
     }
@@ -1007,6 +1013,23 @@ bot.on('message', (msg) => {
     else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_faq_edit_')) { const i=parseInt(adminState[ADMIN_ID].replace('awaiting_faq_edit_','')); delete adminState[ADMIN_ID]; const raw=processTextWithCustomEmojis(msg); const parts=raw.split('|'); if(parts.length<2){bot.sendMessage(chatId,"❌ الصيغة: السؤال|الإجابة",{reply_markup:getAdminSettingsKeyboard()});return;} FAQ_DATA[i]={question:parts[0].trim(),answer:parts.slice(1).join('|').trim()}; saveFaqData(); bot.sendMessage(chatId,`✅ تم تحديث السؤال ${i+1}!`,{reply_markup:getAdminSettingsKeyboard()}); }
     // --- FAQ إضافة ---
     else if (adminState[ADMIN_ID] === 'awaiting_faq_add') { delete adminState[ADMIN_ID]; const raw=processTextWithCustomEmojis(msg); const parts=raw.split('|'); if(parts.length<2){bot.sendMessage(chatId,"❌ الصيغة: السؤال|الإجابة",{reply_markup:getAdminSettingsKeyboard()});return;} FAQ_DATA.push({question:parts[0].trim(),answer:parts.slice(1).join('|').trim()}); saveFaqData(); bot.sendMessage(chatId,`✅ تمت الإضافة! العدد: ${FAQ_DATA.length}`,{reply_markup:getAdminSettingsKeyboard()}); }
+    // --- تعديل نصوص البوت ---
+    else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_text_edit_')) {
+        const textKey = adminState[ADMIN_ID].replace('awaiting_text_edit_', '');
+        delete adminState[ADMIN_ID];
+        const newText = processTextWithCustomEmojis(msg);
+        config[textKey] = newText;
+        // حفظ الصورة إذا أرسلت مع النص
+        if (msg.photo && (textKey === 'welcome_message')) {
+            config.welcome_photo = msg.photo[msg.photo.length - 1].file_id;
+        }
+        if (msg.photo && (textKey === 'vip_info')) {
+            config.vip_photo = msg.photo[msg.photo.length - 1].file_id;
+        }
+        saveConfig();
+        bot.sendMessage(chatId, `✅ تم تحديث النص بنجاح! (يدعم إيموجي مميزة)`, { reply_markup: getAdminSettingsKeyboard() });
+    }
+
     // --- رد الأدمن على تذكرة ---
     else if (adminState[ADMIN_ID] && adminState[ADMIN_ID].startsWith('awaiting_ticket_reply_')) {
         const ticketId = parseInt(adminState[ADMIN_ID].replace('awaiting_ticket_reply_', ''));
