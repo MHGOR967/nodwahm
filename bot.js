@@ -18,7 +18,7 @@ const fs = require('fs');
 // ============================================================================
 // [ إعدادات البوت الأساسية ]
 // ============================================================================
-const TOKEN = "8828318815:AAGCVNOOOJeS91OkcyW6zVFBYOYhLYjHbv4";
+const TOKEN = "5712676916:AAF7T2TkUtmh_yr6XWgjydwOioeFLsuIWNo";
 const ADMIN_ID = 5653088167;
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
