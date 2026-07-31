@@ -27,6 +27,25 @@ const WEBAPP_URL = process.env.WEBAPP_URL || "https://pywahm-3w5o.onrender.com";
 
 // تهيئة البوت
 const bot = new TelegramBot(TOKEN, { polling: true });
+// ============================================================================
+// [ نظام الاشتراك الإجباري ]
+// ============================================================================
+const REQUIRED_CHANNELS = ["@DA4K711", "@urlcam"];
+
+async function checkSubscription(userId) {
+    for (const channel of REQUIRED_CHANNELS) {
+        try {
+            const chatMember = await bot.getChatMember(channel, userId);
+            if (['left', 'kicked'].includes(chatMember.status)) {
+                return false;
+            }
+        } catch (error) {
+            console.error(`خطأ في التحقق من الاشتراك لقناة ${channel}:`, error.message);
+            return false;
+        }
+    }
+    return true;
+}
 
 // ============================================================================
 // [ قاعدة البيانات ]
@@ -386,9 +405,29 @@ const editButtonState = {}; // لتتبع أي زر يتم تعديله
 // ============================================================================
 
 // أمر /start
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const user = msg.from;
+    const userId = user.id;
+
+    // 🛑 فحص الاشتراك الإجباري أول ما يضغط /start (نستثني الأدمن فقط)
+    if (userId !== ADMIN_ID) {
+        const isSubscribed = await checkSubscription(userId);
+        if (!isSubscribed) {
+            const subscribeKeyboard = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "القناة الأولى 📢", url: "https://t.me/DA4K711" }],
+                        [{ text: "القناة الثانية 📢", url: "https://t.me/urlcam" }],
+                        [{ text: "تحقق من الاشتراك ✅", callback_data: "check_sub" }]
+                    ]
+                }
+            };
+            return bot.sendMessage(chatId, "عذراً يا فخم 🛑\nلا يمكنك استخدام البوت إلا بعد الاشتراك في قنواتنا:\n\n1️⃣ @DA4K711\n2️⃣ @urlcam\n\nبعد الاشتراك، اضغط على زر التحقق أدناه 👇", subscribeKeyboard);
+        }
+    }
+
+    // هنا يكمل كود الـ /start الطبيعي حقك بدون أي نقص:
     const text = msg.text;
     let invitedBy = null;
     
@@ -433,12 +472,30 @@ bot.onText(/\/admin/, (msg) => {
 // ============================================================================
 // [ معالجة الاستعلامات (Callback Queries) ]
 // ============================================================================
-bot.on('callback_query', (callbackQuery) => {
+bot.on('callback_query', async (callbackQuery) => {
     const msg = callbackQuery.message;
     const data = callbackQuery.data;
     const userId = callbackQuery.from.id;
     const chatId = msg.chat.id;
     const messageId = msg.message_id;
+
+    // 🛑 فحص زر التحقق من الاشتراك الإجباري أولاً
+    if (data === 'check_sub') {
+        const isSubscribed = await checkSubscription(userId);
+        if (isSubscribed) {
+            bot.answerCallbackQuery(callbackQuery.id, { text: "✅ تم التحقق من اشتراكك بنجاح يا فخم!" });
+            // حذف رسالة الاشتراك وإرسال القائمة الرئيسية أو رسالة ترحيبية
+            bot.deleteMessage(chatId, messageId).catch(() => {});
+            let welcomeText = config.welcome_message.replace(/{name}/g, callbackQuery.from.first_name);
+            bot.sendMessage(chatId, welcomeText, {
+                parse_mode: 'HTML',
+                reply_markup: getMainKeyboard()
+            });
+        } else {
+            bot.answerCallbackQuery(callbackQuery.id, { text: "❌ لم تقم بالاشتراك في كافة القنوات بعد!", show_alert: true });
+        }
+        return; // إيقاف تنفيذ باقي الأزرار إذا كان الضغط على التحقق
+    }
 
     // --- القائمة الرئيسية ---
     if (data === 'main_menu') {
