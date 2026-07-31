@@ -23,7 +23,7 @@ const TOKEN = process.env.BOT_TOKEN;
 const ADMIN_ID = Number(process.env.ADMIN_ID);
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
-const WEBAPP_URL = process.env.WEBAPP_URL || "https://pywahm-3w5o.onrender.com";
+const WEBAPP_URL = "https://pywahmapk.onrender.com";
 
 // تهيئة البوت
 const bot = new TelegramBot(TOKEN, { polling: true });
