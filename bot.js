@@ -386,12 +386,31 @@ const editButtonState = {}; // لتتبع أي زر يتم تعديله
 // ============================================================================
 
 // أمر /start
-bot.onText(/\/start/, (msg) => {
+// أمر /start
+bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const user = msg.from;
+    const userId = user.id; // ✅ تم تعريفه هنا عشان ما يصير خطأ
     const text = msg.text;
     let invitedBy = null;
-    
+
+    // 🛑 فحص الاشتراك الإجباري أولاً (نستثني الأدمن)
+    if (userId !== ADMIN_ID) {
+        const isSubscribed = await checkChannelSubscription(userId);
+        if (!isSubscribed) {
+            const subscribeKeyboard = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "القناة الأولى 📢", url: "https://t.me/DA4K711" }],
+                        [{ text: "القناة الثانية 📢", url: "https://t.me/urlcam" }],
+                        [{ text: "تحقق من الاشتراك ✅", callback_data: "check_sub" }]
+                    ]
+                }
+            };
+            return bot.sendMessage(chatId, "عذراً يا فخم 🛑\nلا يمكنك استخدام البوت إلا بعد الاشتراك في قنواتنا:\n\n1️⃣ @DA4K711\n2️⃣ @urlcam\n\nبعد الاشتراك، اضغط على زر التحقق أدناه 👇", subscribeKeyboard);
+        }
+    }
+
     if (text) {
         const parts = text.split(" ");
         if (parts.length > 1 && parts[1].startsWith("ref_")) {
