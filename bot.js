@@ -18,11 +18,12 @@ const fs = require('fs');
 // ============================================================================
 // [ إعدادات البوت الأساسية ]
 // ============================================================================
-const TOKEN = "5712676916:AAGxIlZqufjcHYUGBb9waoCbrTNEzlEvkx8";
-const ADMIN_ID = 5653088167;
+// تم سحب التوكن والأيدي لتعمل عبر متغيرات البيئة (Environment Variables)
+const TOKEN = process.env.BOT_TOKEN;
+const ADMIN_ID = Number(process.env.ADMIN_ID);
 const CONFIG_FILE = "bot_config.json";
 const DB_FILE = "fokhm_bot.db";
-const WEBAPP_URL = "https://pywahm-3w5o.onrender.com";
+const WEBAPP_URL = process.env.WEBAPP_URL || "https://pywahm-3w5o.onrender.com";
 
 // تهيئة البوت
 const bot = new TelegramBot(TOKEN, { polling: true });
